@@ -647,6 +647,87 @@ button { font: inherit; }
 .saveline { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .saveline .hint { flex: 1; }
 
+
+/* ==========================================================================
+   Widget di sistema: griglia a due colonne, posizionabile
+   ========================================================================== */
+.tiles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; align-items: start; }
+.tiles-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* variante "info" (senza barra ondulata, per testo/azioni) */
+.tile.tile-info { gap: 10px; }
+.tile-text { font-size: 1.05rem; font-weight: 650; }
+.tile-note textarea {
+  resize: vertical;
+  min-height: 84px;
+  border: 0;
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: color-mix(in oklab, var(--tone-fg) 10%, transparent);
+  color: inherit;
+  font: inherit;
+  outline: 0;
+}
+.tile-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+}
+.tile-link .icon-sm { flex: none; width: 52px; height: 52px; border-radius: 18px; font-size: 26px; }
+.tile-link .tl-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tile-link .tl-meta b { font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile-link .tl-meta small { color: inherit; opacity: .8; overflow-wrap: anywhere; }
+.tile-weather { display: flex; align-items: center; gap: 16px; }
+.tile-weather .tw-icon { font-size: 2.6rem; line-height: 1; }
+.tile-weather .tw-temp { font-size: 2.4rem; font-weight: 850; font-stretch: 118%; letter-spacing: -.02em; }
+.tile-weather .tw-desc { font-size: .92rem; opacity: .9; }
+
+/* ==========================================================================
+   Servizi: vista compatta (solo icona)
+   ========================================================================== */
+.grid.services-compact { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 12px; }
+.services-compact .card {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 14px 10px;
+  border-radius: 26px;
+}
+.services-compact .card-head { flex-direction: column-reverse; align-items: center; gap: 4px; }
+.services-compact .card-body p,
+.services-compact .card-foot .addr,
+.services-compact .open { display: none; }
+.services-compact .card-foot { justify-content: center; }
+.services-compact .card h3 { font-size: .85rem; -webkit-line-clamp: 1; }
+.services-compact .status { padding: 3px 8px; font-size: 0; gap: 0; }
+.services-compact .status .dot { width: 9px; height: 9px; }
+
+/* ==========================================================================
+   Editor dei widget nel pannello impostazioni
+   ========================================================================== */
+.widget-pool { display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; padding: 10px; border-radius: 20px; background: var(--surface-container); }
+.widget-pool:empty::after { content: "Tutti i widget disponibili sono già posizionati."; color: var(--on-surface-variant); font-size: .82rem; }
+.widget-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.widget-col h4 { margin: 0 0 8px; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--on-surface-variant); }
+.widget-list { display: flex; flex-direction: column; gap: 8px; min-height: 48px; padding: 8px; border-radius: 20px; background: var(--surface-container); }
+.widget-list:empty::after { content: "Vuoto"; color: var(--on-surface-variant); font-size: .8rem; padding: 6px; }
+.wchip { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 16px; background: var(--surface-container-high); font-size: .85rem; flex-wrap: wrap; }
+.wchip .icon-sm { width: 32px; height: 32px; border-radius: 10px; font-size: 16px; flex: none; }
+.wchip .wc-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.wchip .iconbtn { width: 32px; height: 32px; font-size: .85rem; }
+.wchip-pool { cursor: default; opacity: .85; }
+.wform { display: flex; flex-direction: column; gap: 8px; padding: 10px; margin-top: -2px; border-radius: 16px; background: var(--surface-container-highest); }
+.wform .field input { min-height: 42px; padding: 8px 14px; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: .001ms !important;
@@ -709,7 +790,10 @@ button { font: inherit; }
   <section class="section" aria-labelledby="systemTitle">
     <h2 id="systemTitle">Risorse del NAS</h2>
     <div class="note" id="statsNote" hidden>Statistiche non disponibili. Controlla che il container nas-dashboard-stats sia avviato.</div>
-    <div class="tiles" id="tiles"></div>
+    <div class="tiles-grid" id="tiles">
+      <div class="tiles-col" id="tilesLeft"></div>
+      <div class="tiles-col" id="tilesRight"></div>
+    </div>
   </section>
 
   <p class="foot">Servizi, profilo e colori si modificano dall'icona <strong>impostazioni</strong> in alto a destra. Il file <code>services.json</code> resta comunque modificabile a mano.</p>
@@ -732,6 +816,7 @@ button { font: inherit; }
       <button type="button" class="tab" role="tab" data-tab="profilo" aria-selected="true">Profilo</button>
       <button type="button" class="tab" role="tab" data-tab="aspetto" aria-selected="false">Aspetto</button>
       <button type="button" class="tab" role="tab" data-tab="servizi" aria-selected="false">Servizi</button>
+      <button type="button" class="tab" role="tab" data-tab="widget" aria-selected="false">Widget</button>
       <button type="button" class="tab" role="tab" data-tab="sistema" aria-selected="false">Sistema</button>
     </div>
 
@@ -777,8 +862,38 @@ button { font: inherit; }
 
     <!-- SERVIZI -->
     <div class="pane" data-pane="servizi" hidden>
+      <div class="field">
+        <label>Come mostrare i servizi</label>
+        <div class="seg" id="serviceDisplaySeg">
+          <button type="button" data-display="full" aria-pressed="true">Nome e descrizione</button>
+          <button type="button" data-display="compact" aria-pressed="false">Solo icona</button>
+        </div>
+      </div>
       <div id="svcAdmin" class="pane"></div>
       <button type="button" class="btn" id="svcAdd">+ Aggiungi servizio</button>
+    </div>
+
+    <!-- WIDGET -->
+    <div class="pane" data-pane="widget" hidden>
+      <p class="hint">Trascina non serve: usa le frecce per riordinare, ⇄ per spostare tra le colonne, l'interruttore per mostrare o nascondere.</p>
+      <div class="field">
+        <label>Widget disponibili (nascosti)</label>
+        <div class="widget-pool" id="widgetPool"></div>
+      </div>
+      <div class="row">
+        <button type="button" class="btn ghost small" id="widgetAddNote">+ Nota rapida</button>
+        <button type="button" class="btn ghost small" id="widgetAddLink">+ Collegamento rapido</button>
+      </div>
+      <div class="widget-cols">
+        <div class="widget-col" data-col="0">
+          <h4>Colonna sinistra</h4>
+          <div class="widget-list" id="wcol0"></div>
+        </div>
+        <div class="widget-col" data-col="1">
+          <h4>Colonna destra</h4>
+          <div class="widget-list" id="wcol1"></div>
+        </div>
+      </div>
     </div>
 
     <!-- SISTEMA -->
@@ -894,7 +1009,7 @@ button { font: inherit; }
     ]
   };
 
-  let cfg = { title: "NAS", name: "", avatar: "", avatarEmoji: "", sshUrl: "http://192.168.1.207:7681/", statusIntervalSeconds: 15, services: [] };
+  let cfg = { title: "NAS", name: "", avatar: "", avatarEmoji: "", sshUrl: "http://192.168.1.207:7681/", statusIntervalSeconds: 15, serviceDisplay: "full", services: [], layout: null };
   let configError = null;
   let usingFallbackConfig = false;
   let items = [];
@@ -1123,6 +1238,7 @@ button { font: inherit; }
         setStatus(item, result);
       }));
       updateOnlineChip();
+      updateServiceSummaryTile();
     } finally {
       checking = false;
     }
@@ -1148,7 +1264,72 @@ button { font: inherit; }
     return `${min} min`;
   }
 
-  function makeTile(label, tone) {
+  /* ---------- widget: registro dei tipi disponibili ---------- */
+  const WIDGET_TYPES = {
+    cpu:        { label: "Processore",        tone: "primary",   icon: "🖥️" },
+    mem:        { label: "Memoria",           tone: "tertiary",  icon: "🧩" },
+    swap:       { label: "Memoria swap",      tone: "tertiary",  icon: "🔁" },
+    net:        { label: "Rete",              tone: "secondary", icon: "🌐" },
+    load:       { label: "Carico di sistema", tone: "primary",   icon: "📈" },
+    uptime:     { label: "Accensione",        tone: "secondary", icon: "⏱️" },
+    svcsummary: { label: "Servizi online",    tone: "primary",   icon: "✅" },
+    weather:    { label: "Meteo",             tone: "tertiary",  icon: "⛅" },
+    note:       { label: "Nota rapida",       tone: "secondary", icon: "📝" },
+    link:       { label: "Collegamento",      tone: "tertiary",  icon: "🔗" }
+  };
+  const CORE_WIDGET_TYPES = ["cpu", "mem", "swap", "net", "load", "uptime", "svcsummary", "weather"];
+  const DEFAULT_HIDDEN = ["swap", "net", "load", "uptime", "svcsummary", "weather"];
+
+  function widgetInfo(id) {
+    const w = cfg.layout.widgets[id];
+    if (!w) return null;
+    if (w.type === "disk") return { label: "Disco " + w.name, tone: "secondary", icon: "💽" };
+    const t = WIDGET_TYPES[w.type] || { label: id, tone: "primary", icon: "❔" };
+    if (w.type === "link") return { label: w.label || "Collegamento", tone: t.tone, icon: w.icon || t.icon };
+    return t;
+  }
+
+  function ensureLayout() {
+    if (!cfg.layout || typeof cfg.layout !== "object") {
+      cfg.layout = { left: ["cpu", "mem"], right: [], hidden: DEFAULT_HIDDEN.slice(), widgets: {} };
+    }
+    const L = cfg.layout;
+    if (!Array.isArray(L.left)) L.left = [];
+    if (!Array.isArray(L.right)) L.right = [];
+    if (!Array.isArray(L.hidden)) L.hidden = [];
+    if (!L.widgets || typeof L.widgets !== "object") L.widgets = {};
+    for (const type of CORE_WIDGET_TYPES) {
+      if (!L.widgets[type]) {
+        L.widgets[type] = type === "weather" ? { type, lat: null, lon: null, place: "" } : { type };
+        const placed = L.left.includes(type) || L.right.includes(type) || L.hidden.includes(type);
+        if (!placed) L.hidden.push(type);
+      }
+    }
+  }
+
+  function registerDiskWidgets(disks) {
+    const L = cfg.layout;
+    let changed = false;
+    for (const disk of disks || []) {
+      const id = "disk:" + disk.name;
+      if (!L.widgets[id]) {
+        L.widgets[id] = { type: "disk", name: disk.name };
+        L.left.push(id);
+        changed = true;
+      }
+    }
+    if (changed) renderTilesLayout();
+  }
+
+  function removeFromAllLists(id) {
+    const L = cfg.layout;
+    L.left = L.left.filter((x) => x !== id);
+    L.right = L.right.filter((x) => x !== id);
+    L.hidden = L.hidden.filter((x) => x !== id);
+  }
+
+  /* ---------- costruttori dei widget mostrati nella dashboard ---------- */
+  function makeMetricTile(label, tone) {
     const value = h("div", { class: "tile-value" }, "–");
     const fill = h("div", { class: "wavy-fill" });
     const wavy = h("div", { class: "wavy", "aria-hidden": "true" }, h("div", { class: "wavy-track" }), fill);
@@ -1165,45 +1346,175 @@ button { font: inherit; }
         fill.style.width = Math.max(clamped, 2) + "%";
         sub.replaceChildren(...lines.map((line) => h("div", {}, line)));
       },
-      fail(text) {
-        root.classList.add("stale");
-        sub.replaceChildren(h("div", {}, text));
-      }
+      fail(text) { root.classList.add("stale"); sub.replaceChildren(h("div", {}, text)); }
     };
   }
 
-  function getTile(key, label, tone) {
-    let tile = tiles.get(key);
-    if (!tile) {
-      tile = makeTile(label, tone);
-      tiles.set(key, tile);
-      $("#tiles").append(tile.root);
-    }
-    return tile;
+  function makeInfoTile(label, tone) {
+    const text = h("div", { class: "tile-text" }, "–");
+    const sub = h("div", { class: "tile-sub" });
+    const root = h("article", { class: "tile tile-info tone-" + tone }, h("div", { class: "tile-label" }, label), text, sub);
+    return {
+      root,
+      set(main, lines) {
+        root.classList.remove("stale");
+        text.textContent = main;
+        sub.replaceChildren(...(lines || []).map((line) => h("div", {}, line)));
+      },
+      fail(msg) { root.classList.add("stale"); text.textContent = "–"; sub.replaceChildren(h("div", {}, msg)); }
+    };
   }
+
+  function makeNoteTile(id, tone) {
+    const w = cfg.layout.widgets[id];
+    const ta = h("textarea", { placeholder: "Scrivi qui una nota…" });
+    ta.value = w.text || "";
+    ta.addEventListener("change", () => { w.text = ta.value; saveConfig(); });
+    const root = h("article", { class: "tile tile-info tile-note tone-" + tone }, h("div", { class: "tile-label" }, "Nota"), ta);
+    return { root, set() {}, fail() {} };
+  }
+
+  function makeLinkTile(id, tone) {
+    const w = cfg.layout.widgets[id];
+    const icon = h("span", { class: "icon-sm", "aria-hidden": "true" }, buildIcon({ icon: w.icon, name: w.label }));
+    const meta = h("div", { class: "tl-meta" }, h("b", {}, w.label || "Collegamento"), h("small", {}, w.url ? displayAddress(w.url) : "nessun indirizzo"));
+    const root = h("a", { class: "tile tile-link tone-" + tone, href: w.url || "#", target: w.url ? "_blank" : null, rel: "noopener" }, icon, meta);
+    if (!w.url) root.addEventListener("click", (e) => e.preventDefault());
+    return { root, set() {}, fail() {} };
+  }
+
+  const WEATHER_CODES = {
+    0: "Sereno", 1: "Poco nuvoloso", 2: "Parzialmente nuvoloso", 3: "Nuvoloso",
+    45: "Nebbia", 48: "Nebbia con brina",
+    51: "Pioviggine debole", 53: "Pioviggine", 55: "Pioviggine intensa",
+    61: "Pioggia debole", 63: "Pioggia", 65: "Pioggia intensa",
+    71: "Neve debole", 73: "Neve", 75: "Neve intensa",
+    80: "Rovesci deboli", 81: "Rovesci", 82: "Rovesci intensi",
+    95: "Temporale", 96: "Temporale con grandine", 99: "Temporale con grandine forte"
+  };
+  function weatherEmoji(code) {
+    if (code === 0) return "☀️";
+    if (code <= 2) return "🌤️";
+    if (code === 3) return "☁️";
+    if (code === 45 || code === 48) return "🌫️";
+    if (code >= 51 && code <= 65) return "🌧️";
+    if (code >= 71 && code <= 75) return "❄️";
+    if (code >= 80 && code <= 82) return "🌦️";
+    if (code >= 95) return "⛈️";
+    return "⛅";
+  }
+
+  function makeWeatherTile(id, tone) {
+    const iconEl = h("span", { class: "tw-icon" }, "⛅");
+    const tempEl = h("span", { class: "tw-temp" }, "–");
+    const descEl = h("div", { class: "tw-desc" }, "Imposta una posizione dalle impostazioni");
+    const root = h("article", { class: "tile tone-" + tone },
+      h("div", { class: "tile-label" }, "Meteo"),
+      h("div", { class: "tile-weather" }, iconEl, tempEl),
+      descEl);
+    return {
+      root,
+      set(temp, desc, place) {
+        root.classList.remove("stale");
+        tempEl.textContent = Math.round(temp) + "°";
+        iconEl.textContent = weatherEmoji(desc.code);
+        descEl.textContent = desc.text + (place ? " · " + place : "");
+      },
+      fail(msg) { root.classList.add("stale"); descEl.textContent = msg; }
+    };
+  }
+
+  async function refreshWeather(id, tile) {
+    const w = cfg.layout.widgets[id];
+    if (!w || w.lat == null || w.lon == null) { tile.fail("Imposta una posizione dalle impostazioni"); return; }
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${w.lat}&longitude=${w.lon}&current=temperature_2m,weather_code&timezone=auto`;
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      const code = data.current.weather_code;
+      tile.set(data.current.temperature_2m, { code, text: WEATHER_CODES[code] || "—" }, w.place);
+    } catch (e) { tile.fail("Meteo non disponibile"); }
+  }
+
+  /* ---------- costruzione della griglia dal layout salvato ---------- */
+  function buildWidgetTile(id) {
+    const w = cfg.layout.widgets[id];
+    const info = widgetInfo(id);
+    if (!w || !info) return null;
+    switch (w.type) {
+      case "cpu": case "mem": case "disk": case "swap": case "load": return makeMetricTile(info.label, info.tone);
+      case "net": case "uptime": case "svcsummary": return makeInfoTile(info.label, info.tone);
+      case "weather": return makeWeatherTile(id, info.tone);
+      case "note": return makeNoteTile(id, info.tone);
+      case "link": return makeLinkTile(id, info.tone);
+      default: return null;
+    }
+  }
+
+  function renderTilesLayout() {
+    tiles.clear();
+    const left = $("#tilesLeft"); const right = $("#tilesRight");
+    left.replaceChildren(); right.replaceChildren();
+    for (const [col, ids] of [[left, cfg.layout.left], [right, cfg.layout.right]]) {
+      for (const id of ids) {
+        const tile = buildWidgetTile(id);
+        if (!tile) continue;
+        tiles.set(id, tile);
+        col.append(tile.root);
+        if (cfg.layout.widgets[id].type === "weather") refreshWeather(id, tile);
+      }
+    }
+    updateServiceSummaryTile();
+  }
+
+  function fmtRate(bps) { return fmtBytes(bps) + "/s"; }
 
   function renderStats(s) {
     $("#statsNote").hidden = true;
+    registerDiskWidgets(s.disks);
+
+    const set = (id, ...args) => { const t = tiles.get(id); if (t) t.set(...args); };
 
     const cpuLines = [];
-    if (Array.isArray(s.cpu.load)) cpuLines.push("Carico medio " + nf.format(s.cpu.load[0]));
     if (s.cpu.temp != null) cpuLines.push("Temperatura " + nf.format(s.cpu.temp) + " °C");
-    getTile("cpu", "Processore", "primary").set(s.cpu.percent, cpuLines.length ? cpuLines : ["In uso"]);
+    set("cpu", s.cpu.percent, cpuLines.length ? cpuLines : ["In uso"]);
 
-    getTile("mem", "Memoria", "tertiary")
-      .set(s.memory.percent, [`${fmtBytes(s.memory.used)} su ${fmtBytes(s.memory.total)}`]);
+    set("mem", s.memory.percent, [`${fmtBytes(s.memory.used)} su ${fmtBytes(s.memory.total)}`]);
+
+    if (s.swap) {
+      const t = tiles.get("swap");
+      if (t) { if (s.swap.total > 0) t.set(s.swap.percent, [`${fmtBytes(s.swap.used)} su ${fmtBytes(s.swap.total)}`]); else t.fail("Swap non configurata"); }
+    }
+
+    if (Array.isArray(s.cpu.load)) {
+      set("load", Math.min(100, s.cpu.load[0] * 25), [`Media ${nf.format(s.cpu.load[0])} · ${nf.format(s.cpu.load[1])} · ${nf.format(s.cpu.load[2])}`]);
+    }
+
+    if (s.net) set("net", fmtRate(s.net.rx_bps) + " ↓", [fmtRate(s.net.tx_bps) + " ↑"]);
 
     for (const disk of s.disks || []) {
-      const tile = getTile("disk:" + disk.name, "Disco " + disk.name, "secondary");
+      const tile = tiles.get("disk:" + disk.name);
+      if (!tile) continue;
       if (disk.error) tile.fail("Percorso non disponibile");
       else tile.set(disk.percent, [`${fmtBytes(disk.used)} su ${fmtBytes(disk.total)}`]);
     }
 
     if (typeof s.uptime === "number") {
+      set("uptime", fmtUptime(s.uptime), []);
       const chip = $("#chipUptime");
       chip.hidden = false;
       chip.textContent = "Acceso da " + fmtUptime(s.uptime);
     }
+  }
+
+  function updateServiceSummaryTile() {
+    const tile = tiles.get("svcsummary");
+    if (!tile) return;
+    if (!items.length) { tile.fail("Nessun servizio configurato"); return; }
+    const known = items.filter((i) => i.up !== null);
+    const up = known.filter((i) => i.up).length;
+    tile.set(`${up} / ${items.length}`, ["servizi online"]);
   }
 
   async function refreshStats() {
@@ -1215,6 +1526,177 @@ button { font: inherit; }
       $("#statsNote").hidden = false;
       tiles.forEach((tile) => tile.fail("Dati non aggiornati"));
     }
+  }
+
+  /* ---------- editor dei widget nel pannello impostazioni ---------- */
+  let openWidgetFormId = null;
+  function toggleWidgetForm(id) { openWidgetFormId = openWidgetFormId === id ? null : id; renderWidgetAdmin(); }
+
+  function widgetFormNode(id) {
+    const w = cfg.layout.widgets[id];
+    if (w.type === "link") {
+      const nameInput = h("input", { type: "text", placeholder: "Nome", value: w.label || "" });
+      const urlInput = h("input", { type: "text", placeholder: "http://192.168.1.10:8080", value: w.url || "" });
+      const iconInput = h("input", { type: "text", placeholder: "Emoji o URL icona", value: w.icon || "" });
+      const commit = () => {
+        w.label = nameInput.value.trim() || "Collegamento";
+        let u = urlInput.value.trim();
+        if (u && !/^[a-z][a-z0-9+.-]*:\/\//i.test(u)) u = "http://" + u;
+        w.url = u;
+        w.icon = iconInput.value.trim();
+        renderWidgetAdmin();
+      };
+      [nameInput, urlInput, iconInput].forEach((inp) => inp.addEventListener("change", commit));
+      return h("div", { class: "wform" },
+        h("div", { class: "field" }, h("label", {}, "Nome"), nameInput),
+        h("div", { class: "field" }, h("label", {}, "Indirizzo"), urlInput),
+        h("div", { class: "field" }, h("label", {}, "Icona (emoji o URL)"), iconInput));
+    }
+    if (w.type === "weather") {
+      const latInput = h("input", { type: "text", inputmode: "decimal", placeholder: "Latitudine", value: w.lat != null ? String(w.lat) : "" });
+      const lonInput = h("input", { type: "text", inputmode: "decimal", placeholder: "Longitudine", value: w.lon != null ? String(w.lon) : "" });
+      const placeInput = h("input", { type: "text", placeholder: "Nome del luogo (facoltativo)", value: w.place || "" });
+      const commit = () => {
+        const lat = parseFloat(latInput.value.replace(",", "."));
+        const lon = parseFloat(lonInput.value.replace(",", "."));
+        w.lat = isNaN(lat) ? null : lat;
+        w.lon = isNaN(lon) ? null : lon;
+        w.place = placeInput.value.trim();
+        const tile = tiles.get(id);
+        if (tile) refreshWeather(id, tile);
+      };
+      [latInput, lonInput, placeInput].forEach((inp) => inp.addEventListener("change", commit));
+      const locate = h("button", {
+        type: "button", class: "btn ghost small",
+        onclick: () => {
+          if (!navigator.geolocation) return;
+          navigator.geolocation.getCurrentPosition((pos) => {
+            latInput.value = pos.coords.latitude.toFixed(4);
+            lonInput.value = pos.coords.longitude.toFixed(4);
+            commit();
+          }, () => { $("#saveHint").textContent = "Posizione non disponibile: inseriscila a mano."; });
+        }
+      }, "Usa la mia posizione");
+      return h("div", { class: "wform" },
+        h("div", { class: "row" },
+          h("div", { class: "field" }, h("label", {}, "Latitudine"), latInput),
+          h("div", { class: "field" }, h("label", {}, "Longitudine"), lonInput)),
+        h("div", { class: "field" }, h("label", {}, "Luogo"), placeInput),
+        locate);
+    }
+    return null;
+  }
+
+  function widgetChip(id, opts) {
+    const info = widgetInfo(id);
+    if (!info) return null;
+    const w = cfg.layout.widgets[id];
+    const removable = w.type === "note" || w.type === "link";
+    const editable = w.type === "note" || w.type === "link" || w.type === "weather";
+    const chip = h("div", { class: "wchip" + (opts.pool ? " wchip-pool" : ""), "data-id": id },
+      h("span", { class: "icon-sm", "aria-hidden": "true" }, buildIcon({ icon: info.icon })),
+      h("span", { class: "wc-label" }, info.label));
+
+    if (opts.pool) {
+      chip.append(h("button", {
+        type: "button", class: "iconbtn", title: "Mostra a sinistra", "aria-label": "Mostra a sinistra",
+        onclick: () => { cfg.layout.hidden = cfg.layout.hidden.filter((x) => x !== id); cfg.layout.left.push(id); renderWidgetAdmin(); }
+      }, "＋"));
+    } else {
+      const list = opts.col === 0 ? cfg.layout.left : cfg.layout.right;
+      const idx = list.indexOf(id);
+      chip.append(
+        h("button", {
+          type: "button", class: "iconbtn", title: "Sposta su", "aria-label": "Sposta su", disabled: idx <= 0,
+          onclick: () => { [list[idx - 1], list[idx]] = [list[idx], list[idx - 1]]; renderWidgetAdmin(); }
+        }, "▲"),
+        h("button", {
+          type: "button", class: "iconbtn", title: "Sposta giù", "aria-label": "Sposta giù", disabled: idx >= list.length - 1,
+          onclick: () => { [list[idx + 1], list[idx]] = [list[idx], list[idx + 1]]; renderWidgetAdmin(); }
+        }, "▼"),
+        h("button", {
+          type: "button", class: "iconbtn", title: "Sposta di colonna", "aria-label": "Sposta di colonna",
+          onclick: () => { list.splice(idx, 1); (opts.col === 0 ? cfg.layout.right : cfg.layout.left).push(id); renderWidgetAdmin(); }
+        }, "⇄")
+      );
+      if (editable) {
+        chip.append(h("button", {
+          type: "button", class: "iconbtn", title: "Modifica", "aria-label": "Modifica",
+          onclick: () => toggleWidgetForm(id)
+        }, "✎"));
+      }
+      chip.append(h("button", {
+        type: "button", class: "iconbtn", title: "Nascondi", "aria-label": "Nascondi",
+        onclick: () => { removeFromAllLists(id); cfg.layout.hidden.push(id); renderWidgetAdmin(); }
+      }, "🙈"));
+    }
+    if (removable) {
+      chip.append(h("button", {
+        type: "button", class: "iconbtn", title: "Elimina", "aria-label": "Elimina",
+        onclick: () => {
+          if (!confirm("Eliminare questo widget?")) return;
+          removeFromAllLists(id);
+          delete cfg.layout.widgets[id];
+          if (openWidgetFormId === id) openWidgetFormId = null;
+          renderWidgetAdmin();
+          $("#saveHint").textContent = "Eliminato: premi Salva per confermare.";
+        }
+      }, "🗑"));
+    }
+    return chip;
+  }
+
+  function renderWidgetAdmin() {
+    const pool = $("#widgetPool");
+    pool.replaceChildren();
+    cfg.layout.hidden.forEach((id) => { const c = widgetChip(id, { pool: true }); if (c) pool.append(c); });
+
+    for (const col of [0, 1]) {
+      const list = $("#wcol" + col);
+      list.replaceChildren();
+      const ids = col === 0 ? cfg.layout.left : cfg.layout.right;
+      ids.forEach((id) => {
+        const chip = widgetChip(id, { col });
+        if (!chip) return;
+        list.append(chip);
+        if (openWidgetFormId === id) {
+          const form = widgetFormNode(id);
+          if (form) list.append(form);
+        }
+      });
+    }
+  }
+
+  function initWidgetAdmin() {
+    $("#widgetAddNote").addEventListener("click", () => {
+      const id = "note-" + Date.now();
+      cfg.layout.widgets[id] = { type: "note", text: "" };
+      cfg.layout.left.push(id);
+      renderWidgetAdmin();
+      $("#saveHint").textContent = "Nota aggiunta: premi Salva per confermare.";
+    });
+    $("#widgetAddLink").addEventListener("click", () => {
+      const id = "link-" + Date.now();
+      cfg.layout.widgets[id] = { type: "link", label: "Nuovo collegamento", url: "", icon: "🔗" };
+      cfg.layout.left.push(id);
+      openWidgetFormId = id;
+      renderWidgetAdmin();
+      $("#saveHint").textContent = "Collegamento aggiunto: premi Salva per confermare.";
+    });
+  }
+
+  /* ---------- servizi: vista compatta (solo icona) ---------- */
+  function applyServiceDisplay() {
+    $("#services").classList.toggle("services-compact", cfg.serviceDisplay === "compact");
+  }
+  function initServiceDisplay() {
+    $("#serviceDisplaySeg").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-display]");
+      if (!btn) return;
+      cfg.serviceDisplay = btn.dataset.display;
+      $$("#serviceDisplaySeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.display === cfg.serviceDisplay)));
+      applyServiceDisplay();
+    });
   }
 
   /* ---------- ricerca ---------- */
@@ -1312,7 +1794,9 @@ button { font: inherit; }
       avatarEmoji: cfg.avatarEmoji || "",
       sshUrl: cfg.sshUrl || "",
       statusIntervalSeconds: Number(cfg.statusIntervalSeconds) || 15,
-      services: cfg.services || []
+      serviceDisplay: cfg.serviceDisplay === "compact" ? "compact" : "full",
+      services: cfg.services || [],
+      layout: cfg.layout || null
     };
   }
 
@@ -1353,11 +1837,15 @@ button { font: inherit; }
     $("#brand").textContent = cfg.title || "NAS";
     renderAccount();
     tick();
+    ensureLayout();
+    applyServiceDisplay();
     renderServices();
     renderFilters();
     applyFilter();
     updateOnlineChip();
+    renderTilesLayout();
     checkAll();
+    refreshStats();
     restartStatusTimer();
   }
 
@@ -1371,8 +1859,10 @@ button { font: inherit; }
     $("#storageHint").textContent = localOnly
       ? "Le modifiche sono salvate solo in questo browser: il server non può scrivere services.json."
       : "Le modifiche vengono scritte in services.json sul NAS, quindi valgono per tutti i dispositivi.";
+    $$("#serviceDisplaySeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.display === (cfg.serviceDisplay || "full"))));
     renderAccount();
     renderServicesAdmin();
+    renderWidgetAdmin();
   }
 
   function showTab(name) {
@@ -1444,6 +1934,8 @@ button { font: inherit; }
     });
 
     initServiceEditor();
+    initWidgetAdmin();
+    initServiceDisplay();
   }
 
   /* --- elenco servizi dentro le impostazioni --- */
@@ -1491,167 +1983,4 @@ button { font: inherit; }
     editingIndex = index;
     const svc = (index == null ? {} : cfg.services[index]) || {};
     $("#svcTitle").textContent = index == null ? "Nuovo servizio" : "Modifica servizio";
-    $("#sName").value = svc.name || "";
-    $("#sDesc").value = svc.desc || "";
-    $("#sIcon").value = svc.icon || "";
-    $("#sPort").value = svc.port || "";
-    $("#sCategory").value = svc.category || "";
-    $("#sUrl").value = svc.url || "";
-    $("#svcDelete").hidden = index == null;
-    svcIconPreview();
-    $("#svcBackdrop").hidden = false;
-  }
-  function closeServiceEditor() { $("#svcBackdrop").hidden = true; editingIndex = null; }
-
-  function initServiceEditor() {
-    $("#svcAdd").addEventListener("click", () => openServiceEditor(null));
-    $("#svcClose").addEventListener("click", closeServiceEditor);
-    $("#svcBackdrop").addEventListener("click", (e) => { if (e.target.id === "svcBackdrop") closeServiceEditor(); });
-    $("#sIcon").addEventListener("input", svcIconPreview);
-    $("#sName").addEventListener("input", svcIconPreview);
-    $("#sIconUpload").addEventListener("click", () => $("#sIconFile").click());
-    $("#sIconFile").addEventListener("change", async (e) => {
-      const file = e.target.files[0];
-      e.target.value = "";
-      if (!file) return;
-      try { $("#sIcon").value = await readImage(file, 192); svcIconPreview(); }
-      catch (err) { /* immagine non leggibile */ }
-    });
-    $("#sIconClear").addEventListener("click", () => { $("#sIcon").value = ""; svcIconPreview(); });
-
-    $("#svcDelete").addEventListener("click", () => {
-      if (editingIndex == null) return;
-      cfg.services.splice(editingIndex, 1);
-      closeServiceEditor();
-      renderServicesAdmin();
-      $("#saveHint").textContent = "Eliminato: premi Salva per confermare.";
-    });
-
-    $("#svcSave").addEventListener("click", () => {
-      let url = $("#sUrl").value.trim();
-      if (url && !/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) url = "http://" + url;
-      const svc = {
-        name: $("#sName").value.trim() || "Servizio",
-        desc: $("#sDesc").value.trim(),
-        icon: $("#sIcon").value.trim(),
-        category: $("#sCategory").value.trim(),
-      };
-      const port = Number($("#sPort").value);
-      if (url) svc.url = url;
-      else if (port) svc.port = port;
-      cfg.services = cfg.services || [];
-      if (editingIndex == null) cfg.services.push(svc);
-      else cfg.services[editingIndex] = Object.assign({}, cfg.services[editingIndex], svc, url ? { port: undefined } : { url: undefined });
-      closeServiceEditor();
-      renderServicesAdmin();
-      $("#saveHint").textContent = "Modifiche pronte: premi Salva per confermare.";
-    });
-  }
-
-  /* ---------- avvio ---------- */
-  async function loadConfig() {
-    // 1) Se la pagina è servita da un server (Docker, "python -m http.server", ecc.)
-    //    proviamo a leggere services.json, che è la fonte "vera" e modificabile
-    //    dal NAS senza toccare il codice.
-    localOnly = lsGet(LS_KEYS.localOnly) === "1";
-    const stored = lsGet(LS_KEYS.cfg);
-
-    // 0) Se un salvataggio precedente non è potuto arrivare al server, la copia
-    //    di questo browser è la più aggiornata e ha la precedenza.
-    if (localOnly && stored) {
-      try {
-        cfg = Object.assign(cfg, JSON.parse(stored));
-        if (!Array.isArray(cfg.services)) cfg.services = [];
-        return;
-      } catch (e) { /* copia locale illeggibile: si prosegue */ }
-    }
-
-    if (location.protocol !== "file:") {
-      try {
-        const res = await fetch("services.json", { cache: "no-store" });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const data = await res.json();
-        cfg = Object.assign(cfg, data);
-        if (!Array.isArray(cfg.services)) cfg.services = [];
-        return;
-      } catch (e) {
-        configError = e.message || "errore sconosciuto";
-      }
-    }
-
-    // 2) Pagina aperta a doppio clic (file://) oppure services.json non raggiungibile:
-    //    fetch() su file locali è bloccato dal browser, quindi non funzionerà mai in
-    //    questo caso. Usiamo invece window.NAS_CONFIG, se presente: viene definito da
-    //    un eventuale "config.js" caricato con <script>, che funziona anche da file://.
-    if (stored) {
-      try {
-        cfg = Object.assign(cfg, JSON.parse(stored));
-        if (!Array.isArray(cfg.services)) cfg.services = [];
-        configError = null;
-        usingFallbackConfig = true;
-        localOnly = true;
-        return;
-      } catch (e) { /* copia locale illeggibile: si prosegue */ }
-    }
-
-    if (window.NAS_CONFIG && typeof window.NAS_CONFIG === "object") {
-      cfg = Object.assign(cfg, window.NAS_CONFIG);
-      if (!Array.isArray(cfg.services)) cfg.services = [];
-      configError = null;
-      usingFallbackConfig = true;
-      return;
-    }
-
-    // 3) Nessuna config esterna disponibile: usiamo quella di riserva incorporata
-    //    nella pagina, così la dashboard mostra comunque qualcosa.
-    cfg = Object.assign({}, DEFAULT_CONFIG);
-    usingFallbackConfig = true;
-  }
-
-  function renderModeNotice() {
-    const notice = $("#modeNotice");
-    if (!notice) return;
-    if (location.protocol === "file:") {
-      notice.hidden = false;
-      notice.textContent = usingFallbackConfig
-        ? "Pagina aperta come file, senza server: mostro una configurazione di esempio. Le statistiche del NAS non sono disponibili in questa modalità (richiedono il container in esecuzione). Puoi comunque modificare servizi e profilo dalle impostazioni: le modifiche restano salvate in questo browser."
-        : "Pagina aperta come file, senza server: le statistiche del NAS non sono disponibili in questa modalità (richiedono il container in esecuzione).";
-    } else {
-      notice.hidden = true;
-    }
-  }
-
-  async function init() {
-    initTheme();
-    initThemeMode();
-    initSettings();
-    initSearch();
-    tick();
-    setInterval(tick, 1000);
-
-    await loadConfig();
-    renderModeNotice();
-    $("#brand").textContent = cfg.title || "NAS";
-    document.title = cfg.title || "NAS";
-    renderAccount();
-    tick();
-    renderServices();
-    renderFilters();
-    applyFilter();
-    updateOnlineChip();
-
-    checkAll();
-    refreshStats();
-
-    restartStatusTimer();
-    setInterval(() => { if (!document.hidden) refreshStats(); }, 3000);
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) { checkAll(); refreshStats(); }
-    });
-  }
-
-  init();
-})();
-</script>
-</body>
-</html>
+    $("#sName").value = svc.name 
