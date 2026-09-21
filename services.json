@@ -1,6 +1,9 @@
 {
   "title": "Il mio NAS",
   "name": "",
+  "avatarEmoji": "🙂",
+  "avatar": "",
+  "sshUrl": "http://192.168.1.207:7681/",
   "statusIntervalSeconds": 15,
   "services": [
     {
