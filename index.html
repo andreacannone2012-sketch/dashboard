@@ -800,6 +800,8 @@ button { font: inherit; }
 
   <div class="note" id="modeNotice" hidden></div>
 
+  <div class="note" id="fatalError" hidden></div>
+
   <noscript><p class="note">Questa dashboard ha bisogno di JavaScript per funzionare.</p></noscript>
 </div>
 
@@ -1983,4 +1985,194 @@ button { font: inherit; }
     editingIndex = index;
     const svc = (index == null ? {} : cfg.services[index]) || {};
     $("#svcTitle").textContent = index == null ? "Nuovo servizio" : "Modifica servizio";
-    $("#sName").value = svc.name 
+    $("#sName").value = svc.name || "";
+    $("#sDesc").value = svc.desc || "";
+    $("#sIcon").value = svc.icon || "";
+    $("#sPort").value = svc.port || "";
+    $("#sCategory").value = svc.category || "";
+    $("#sUrl").value = svc.url || "";
+    $("#svcDelete").hidden = index == null;
+    svcIconPreview();
+    $("#svcBackdrop").hidden = false;
+  }
+  function closeServiceEditor() { $("#svcBackdrop").hidden = true; editingIndex = null; }
+
+  function initServiceEditor() {
+    $("#svcAdd").addEventListener("click", () => openServiceEditor(null));
+    $("#svcClose").addEventListener("click", closeServiceEditor);
+    $("#svcBackdrop").addEventListener("click", (e) => { if (e.target.id === "svcBackdrop") closeServiceEditor(); });
+    $("#sIcon").addEventListener("input", svcIconPreview);
+    $("#sName").addEventListener("input", svcIconPreview);
+    $("#sIconUpload").addEventListener("click", () => $("#sIconFile").click());
+    $("#sIconFile").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      try { $("#sIcon").value = await readImage(file, 192); svcIconPreview(); }
+      catch (err) { /* immagine non leggibile */ }
+    });
+    $("#sIconClear").addEventListener("click", () => { $("#sIcon").value = ""; svcIconPreview(); });
+
+    $("#svcDelete").addEventListener("click", () => {
+      if (editingIndex == null) return;
+      cfg.services.splice(editingIndex, 1);
+      closeServiceEditor();
+      renderServicesAdmin();
+      $("#saveHint").textContent = "Eliminato: premi Salva per confermare.";
+    });
+
+    $("#svcSave").addEventListener("click", () => {
+      let url = $("#sUrl").value.trim();
+      if (url && !/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) url = "http://" + url;
+      const svc = {
+        name: $("#sName").value.trim() || "Servizio",
+        desc: $("#sDesc").value.trim(),
+        icon: $("#sIcon").value.trim(),
+        category: $("#sCategory").value.trim(),
+      };
+      const port = Number($("#sPort").value);
+      if (url) svc.url = url;
+      else if (port) svc.port = port;
+      cfg.services = cfg.services || [];
+      if (editingIndex == null) cfg.services.push(svc);
+      else cfg.services[editingIndex] = Object.assign({}, cfg.services[editingIndex], svc, url ? { port: undefined } : { url: undefined });
+      closeServiceEditor();
+      renderServicesAdmin();
+      $("#saveHint").textContent = "Modifiche pronte: premi Salva per confermare.";
+    });
+  }
+
+  /* ---------- avvio ---------- */
+  async function loadConfig() {
+    // 1) Se la pagina è servita da un server (Docker, "python -m http.server", ecc.)
+    //    proviamo a leggere services.json, che è la fonte "vera" e modificabile
+    //    dal NAS senza toccare il codice.
+    localOnly = lsGet(LS_KEYS.localOnly) === "1";
+    const stored = lsGet(LS_KEYS.cfg);
+
+    // 0) Se un salvataggio precedente non è potuto arrivare al server, la copia
+    //    di questo browser è la più aggiornata e ha la precedenza.
+    if (localOnly && stored) {
+      try {
+        cfg = Object.assign(cfg, JSON.parse(stored));
+        if (!Array.isArray(cfg.services)) cfg.services = [];
+        return;
+      } catch (e) { /* copia locale illeggibile: si prosegue */ }
+    }
+
+    if (location.protocol !== "file:") {
+      try {
+        const res = await fetch("services.json", { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        cfg = Object.assign(cfg, data);
+        if (!Array.isArray(cfg.services)) cfg.services = [];
+        return;
+      } catch (e) {
+        configError = e.message || "errore sconosciuto";
+      }
+    }
+
+    // 2) Pagina aperta a doppio clic (file://) oppure services.json non raggiungibile:
+    //    fetch() su file locali è bloccato dal browser, quindi non funzionerà mai in
+    //    questo caso. Usiamo invece window.NAS_CONFIG, se presente: viene definito da
+    //    un eventuale "config.js" caricato con <script>, che funziona anche da file://.
+    if (stored) {
+      try {
+        cfg = Object.assign(cfg, JSON.parse(stored));
+        if (!Array.isArray(cfg.services)) cfg.services = [];
+        configError = null;
+        usingFallbackConfig = true;
+        localOnly = true;
+        return;
+      } catch (e) { /* copia locale illeggibile: si prosegue */ }
+    }
+
+    if (window.NAS_CONFIG && typeof window.NAS_CONFIG === "object") {
+      cfg = Object.assign(cfg, window.NAS_CONFIG);
+      if (!Array.isArray(cfg.services)) cfg.services = [];
+      configError = null;
+      usingFallbackConfig = true;
+      return;
+    }
+
+    // 3) Nessuna config esterna disponibile: usiamo quella di riserva incorporata
+    //    nella pagina, così la dashboard mostra comunque qualcosa.
+    cfg = Object.assign({}, DEFAULT_CONFIG);
+    usingFallbackConfig = true;
+  }
+
+  function renderModeNotice() {
+    const notice = $("#modeNotice");
+    if (!notice) return;
+    if (location.protocol === "file:") {
+      notice.hidden = false;
+      notice.textContent = usingFallbackConfig
+        ? "Pagina aperta come file, senza server: mostro una configurazione di esempio. Le statistiche del NAS non sono disponibili in questa modalità (richiedono il container in esecuzione). Puoi comunque modificare servizi e profilo dalle impostazioni: le modifiche restano salvate in questo browser."
+        : "Pagina aperta come file, senza server: le statistiche del NAS non sono disponibili in questa modalità (richiedono il container in esecuzione).";
+    } else {
+      notice.hidden = true;
+    }
+  }
+
+  function reportFatal(step, err) {
+    console.error("[" + step + "]", err);
+    const box = $("#fatalError");
+    if (!box) return;
+    box.hidden = false;
+    box.append(h("div", {}, `${step}: ${err && err.message ? err.message : err}`));
+  }
+
+  async function init() {
+    const steps = [
+      ["tema", () => { initTheme(); initThemeMode(); }],
+      ["impostazioni", () => initSettings()],
+      ["ricerca", () => initSearch()],
+      ["orologio", () => { tick(); setInterval(tick, 1000); }]
+    ];
+    for (const [name, fn] of steps) {
+      try { fn(); } catch (e) { reportFatal(name, e); }
+    }
+
+    try {
+      await loadConfig();
+    } catch (e) { reportFatal("caricamento configurazione", e); }
+
+    try {
+      renderModeNotice();
+      $("#brand").textContent = cfg.title || "NAS";
+      document.title = cfg.title || "NAS";
+      renderAccount();
+      tick();
+    } catch (e) { reportFatal("profilo", e); }
+
+    try {
+      ensureLayout();
+      renderTilesLayout();
+    } catch (e) { reportFatal("widget", e); }
+
+    try {
+      applyServiceDisplay();
+      renderServices();
+      renderFilters();
+      applyFilter();
+      updateOnlineChip();
+    } catch (e) { reportFatal("servizi", e); }
+
+    try { checkAll(); } catch (e) { reportFatal("verifica servizi", e); }
+    try { refreshStats(); } catch (e) { reportFatal("statistiche", e); }
+
+    try {
+      restartStatusTimer();
+      setInterval(() => { if (!document.hidden) refreshStats(); }, 3000);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) { checkAll(); refreshStats(); }
+      });
+    } catch (e) { reportFatal("timer", e); }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
