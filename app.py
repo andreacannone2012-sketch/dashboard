@@ -2,10 +2,11 @@
 """Dashboard NAS: un solo container che serve la pagina e le statistiche.
 
 Endpoint:
-  /                 pagina index.html
-  /services.json    elenco servizi (da /config se presente, altrimenti quello incluso)
-  /api/stats        JSON con CPU, RAM, dischi, temperatura, uptime
-  /api/health       controllo di salute
+  /                    pagina index.html
+  /services.json       elenco servizi (da /config se presente, altrimenti quello incluso)
+  POST /api/services   salva la configurazione modificata dall'interfaccia
+  /api/stats           JSON con CPU, RAM, dischi, temperatura, uptime
+  /api/health          controllo di salute
 
 Variabili d'ambiente:
   PORT        porta di ascolto (default 8080)
@@ -62,6 +63,21 @@ def prepare_config():
 def services_path():
     custom = os.path.join(CONFIG_DIR, "services.json")
     return custom if os.path.isfile(custom) else os.path.join(APP_DIR, "services.json")
+
+
+MAX_CONFIG_BYTES = 4 * 1024 * 1024  # spazio abbondante anche per icone e avatar incorporati
+
+
+def write_config(data):
+    """Scrive services.json nella cartella di configurazione, in modo atomico."""
+    if not isinstance(data, dict) or not isinstance(data.get("services"), list):
+        raise ValueError("struttura non valida: serve un oggetto con la lista services")
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    target = os.path.join(CONFIG_DIR, "services.json")
+    tmp = target + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, target)
 
 
 def read_cpu_times():
@@ -192,6 +208,32 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(404, {"error": "not found"})
         else:
             self._json(404, {"error": "not found"})
+
+    def do_POST(self):
+        path = self.path.split("?", 1)[0]
+        if path not in ("/api/services", "/api/config"):
+            self._json(404, {"error": "not found"})
+            return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if length <= 0 or length > MAX_CONFIG_BYTES:
+            self._json(413, {"error": "corpo della richiesta assente o troppo grande"})
+            return
+        try:
+            data = json.loads(self.rfile.read(length).decode("utf-8"))
+        except Exception as exc:  # noqa: BLE001
+            self._json(400, {"error": f"JSON non valido: {exc}"})
+            return
+        try:
+            write_config(data)
+        except Exception as exc:  # noqa: BLE001
+            # Tipico quando /config è in sola lettura: la pagina lo capisce e
+            # continua a salvare nel browser.
+            self._json(500, {"error": str(exc)})
+            return
+        self._json(200, {"ok": True})
 
     def log_message(self, fmt, *args):  # niente log per ogni richiesta
         pass
