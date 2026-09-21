@@ -1,0 +1,33 @@
+NAS DASHBOARD, setup rapido (GitHub + ZimaOS/CasaOS)
+
+1. Crea un repository su GitHub (es. nas-dashboard) e carica TUTTO il contenuto
+   della cartella, compresa la cartella nascosta .github.
+2. Scheda Actions: la build parte da sola (1 o 2 minuti) e pubblica l'immagine su
+   ghcr.io/TUO_UTENTE/nas-dashboard:latest
+3. Se il repo e privato: profilo GitHub, Packages, il pacchetto, Package settings,
+   Change visibility, Public.
+4. Nel file docker-compose.yml sostituisci OWNER/REPO con TUO_UTENTE/nas-dashboard
+   (tutto minuscolo). Controlla che /media/Storage sia il vero percorso del tuo storage.
+5. Incolla il compose nella GUI del NAS e avvia.
+6. Apri http://IP_DEL_NAS:8088
+
+Per modificare i servizi: al primo avvio il file services.json compare in
+/DATA/AppData/nas-dashboard. Modificalo e ricarica la pagina, senza rebuild.
+
+USO SENZA SERVER (solo per provare/modificare la grafica in locale)
+--------------------------------------------------------------------
+Aprendo index.html a doppio clic (senza Docker, senza "python app.py") il
+browser carica la pagina con il protocollo file://, che per motivi di
+sicurezza blocca la lettura di services.json via fetch(). In questa modalità:
+- l'elenco dei servizi FUNZIONA comunque: copia config.example.js in
+  "config.js" (stessa cartella di index.html) e modificalo. Uno <script>
+  funziona anche da file://, a differenza di fetch(). Se non crei config.js,
+  la pagina mostra 3 servizi di esempio incorporati nel codice.
+- le statistiche del NAS (CPU/RAM/dischi) NON possono funzionare: leggono
+  /proc dal sistema del NAS, cosa che un file HTML aperto sul tuo PC non può
+  fare. Servono per forza il container Docker (o "python app.py") in
+  esecuzione da qualche parte raggiungibile dal browser.
+Per un test più realistico, meglio comunque avviare un server statico
+qualsiasi nella cartella (es. "python -m http.server 8080") ed aprire
+http://localhost:8080: così fetch("services.json") funziona normalmente e
+non serve nemmeno config.js.

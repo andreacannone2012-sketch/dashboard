@@ -1,0 +1,28 @@
+{
+  "title": "Il mio NAS",
+  "name": "",
+  "statusIntervalSeconds": 15,
+  "services": [
+    {
+      "name": "CasaOS",
+      "desc": "Pannello di controllo del server",
+      "icon": "🏠",
+      "port": 80,
+      "category": "Sistema"
+    },
+    {
+      "name": "LM Studio",
+      "desc": "Modelli linguistici in locale",
+      "icon": "🧠",
+      "port": 10021,
+      "category": "AI"
+    },
+    {
+      "name": "File WebDAV",
+      "desc": "Cartella condivisa Storage",
+      "icon": "📁",
+      "port": 5005,
+      "category": "File"
+    }
+  ]
+}

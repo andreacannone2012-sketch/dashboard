@@ -1,0 +1,959 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>NAS</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%97%84%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<!-- Roboto Flex (asse di larghezza e peso variabili, tipico di Material 3 Expressive).
+     Se il NAS non ha internet la pagina usa il font di sistema, senza rotture. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&display=swap">
+<style>
+/* ==========================================================================
+   Token di colore — palette tonale generata da un'unica tinta (--h).
+   Chiaro e scuro seguono automaticamente le impostazioni del sistema.
+   ========================================================================== */
+:root {
+  --h: 285;
+  color-scheme: light dark;
+
+  --font: "Roboto Flex", "Google Sans Flex", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --spring: cubic-bezier(.34, 1.56, .64, 1);   /* rimbalzo morbido, per le forme */
+  --smooth: cubic-bezier(.2, 0, 0, 1);
+
+  --primary: oklch(0.50 0.22 var(--h));
+  --on-primary: oklch(1 0 0);
+  --primary-container: oklch(0.91 0.08 var(--h));
+  --on-primary-container: oklch(0.27 0.13 var(--h));
+
+  --secondary-container: oklch(0.92 0.05 calc(var(--h) + 30));
+  --on-secondary-container: oklch(0.30 0.07 calc(var(--h) + 30));
+  --secondary: oklch(0.48 0.11 calc(var(--h) + 30));
+
+  --tertiary-container: oklch(0.92 0.09 calc(var(--h) + 85));
+  --on-tertiary-container: oklch(0.30 0.10 calc(var(--h) + 85));
+  --tertiary: oklch(0.50 0.15 calc(var(--h) + 85));
+
+  --surface: oklch(0.985 0.008 var(--h));
+  --surface-container-low: oklch(0.965 0.013 var(--h));
+  --surface-container: oklch(0.945 0.017 var(--h));
+  --surface-container-high: oklch(0.925 0.021 var(--h));
+  --surface-container-highest: oklch(0.905 0.025 var(--h));
+  --on-surface: oklch(0.22 0.02 var(--h));
+  --on-surface-variant: oklch(0.44 0.03 var(--h));
+
+  --ok-container: oklch(0.92 0.10 150);
+  --on-ok-container: oklch(0.31 0.09 150);
+  --err: oklch(0.55 0.22 27);
+  --err-container: oklch(0.92 0.06 27);
+  --on-err-container: oklch(0.35 0.15 27);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: oklch(0.80 0.13 var(--h));
+    --on-primary: oklch(0.28 0.13 var(--h));
+    --primary-container: oklch(0.38 0.15 var(--h));
+    --on-primary-container: oklch(0.92 0.06 var(--h));
+
+    --secondary-container: oklch(0.36 0.06 calc(var(--h) + 30));
+    --on-secondary-container: oklch(0.92 0.04 calc(var(--h) + 30));
+    --secondary: oklch(0.80 0.08 calc(var(--h) + 30));
+
+    --tertiary-container: oklch(0.38 0.10 calc(var(--h) + 85));
+    --on-tertiary-container: oklch(0.93 0.06 calc(var(--h) + 85));
+    --tertiary: oklch(0.82 0.12 calc(var(--h) + 85));
+
+    --surface: oklch(0.19 0.015 var(--h));
+    --surface-container-low: oklch(0.22 0.018 var(--h));
+    --surface-container: oklch(0.245 0.02 var(--h));
+    --surface-container-high: oklch(0.275 0.022 var(--h));
+    --surface-container-highest: oklch(0.305 0.024 var(--h));
+    --on-surface: oklch(0.93 0.012 var(--h));
+    --on-surface-variant: oklch(0.78 0.02 var(--h));
+
+    --ok-container: oklch(0.36 0.08 150);
+    --on-ok-container: oklch(0.92 0.10 150);
+    --err: oklch(0.75 0.16 27);
+    --err-container: oklch(0.38 0.11 27);
+    --on-err-container: oklch(0.92 0.06 27);
+  }
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--surface);
+  color: var(--on-surface);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; }
+:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+
+.page {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: clamp(12px, 2.5vw, 28px) clamp(12px, 2.5vw, 28px) 56px;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(22px, 3.2vw, 36px);
+}
+
+/* Tonalità riusate da icone e widget */
+.tone-primary   { --tone-bg: var(--primary-container);   --tone-fg: var(--on-primary-container);   --tone-accent: var(--primary); }
+.tone-secondary { --tone-bg: var(--secondary-container); --tone-fg: var(--on-secondary-container); --tone-accent: var(--secondary); }
+.tone-tertiary  { --tone-bg: var(--tertiary-container);  --tone-fg: var(--on-tertiary-container);  --tone-accent: var(--tertiary); }
+
+/* ==========================================================================
+   Hero: saluto e orologio in tipografia espressiva, forme che si trasformano
+   ========================================================================== */
+.hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 3vw, 28px);
+  min-height: clamp(300px, 44vw, 420px);
+  padding: clamp(20px, 4vw, 40px);
+  border-radius: clamp(32px, 6vw, 56px);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.blob {
+  position: absolute;
+  z-index: -1;
+  aspect-ratio: 1;
+  background: color-mix(in oklab, var(--on-primary) 13%, transparent);
+  animation: morph 18s ease-in-out infinite alternate;
+}
+.blob.b1 { width: clamp(240px, 42vw, 480px); right: -8%; top: -24%; }
+.blob.b2 { width: clamp(150px, 24vw, 290px); right: 24%; bottom: -34%; animation-duration: 24s; animation-direction: alternate-reverse; }
+@keyframes morph {
+  0%   { border-radius: 58% 42% 63% 37% / 45% 55% 45% 55%; transform: rotate(0deg); }
+  50%  { border-radius: 38% 62% 44% 56% / 60% 38% 62% 40%; transform: rotate(25deg); }
+  100% { border-radius: 62% 38% 35% 65% / 40% 60% 40% 60%; transform: rotate(-15deg); }
+}
+
+.hero-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.brand { font-size: 1.1rem; font-weight: 650; font-stretch: 108%; }
+
+.swatches {
+  display: flex;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--on-primary) 14%, transparent);
+}
+.swatch {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sw);
+  cursor: pointer;
+  transition: transform .45s var(--spring), border-radius .45s var(--spring), box-shadow .25s;
+}
+.swatch:hover { transform: scale(1.12); }
+.swatch[aria-checked="true"] {
+  border-radius: 9px;
+  transform: scale(1.12);
+  box-shadow: 0 0 0 2.5px var(--primary), 0 0 0 5px var(--on-primary);
+}
+
+.greeting {
+  margin: 0;
+  font-size: clamp(2rem, 6.4vw, 4.25rem);
+  line-height: 1.04;
+  font-weight: 800;
+  font-stretch: 112%;
+  letter-spacing: -.02em;
+  overflow-wrap: anywhere;
+}
+.clock-row { margin-top: auto; display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px 28px; }
+.clock {
+  font-size: clamp(4.5rem, 17vw, 11rem);
+  line-height: .86;
+  font-weight: 900;
+  font-stretch: 125%;
+  letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+  font-variation-settings: "opsz" 144;
+}
+.clock .colon { display: inline-block; margin: 0 .02em; transform: translateY(-.06em); opacity: .7; }
+.clock-side { display: flex; flex-direction: column; gap: 12px; padding-bottom: .4rem; }
+.date { display: block; font-size: clamp(1.05rem, 2.4vw, 1.5rem); font-weight: 600; font-stretch: 108%; }
+.date::first-letter { text-transform: uppercase; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: .9rem;
+  font-weight: 600;
+  background: color-mix(in oklab, var(--on-primary) 16%, transparent);
+  transition: background .3s, color .3s;
+}
+.chip.warn { background: var(--err-container); color: var(--on-err-container); }
+
+/* ==========================================================================
+   Ricerca e filtri
+   ========================================================================== */
+.toolbar { display: flex; flex-direction: column; gap: 14px; }
+.search {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 64px;
+  padding: 0 20px 0 24px;
+  border-radius: 32px;
+  background: var(--surface-container-high);
+  transition: border-radius .5s var(--spring), background .2s, box-shadow .2s;
+}
+.search:focus-within {
+  border-radius: 20px;
+  background: var(--surface-container-highest);
+  box-shadow: 0 0 0 3px var(--primary);
+}
+.search svg { flex: none; width: 26px; height: 26px; fill: var(--on-surface-variant); }
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+.search input::placeholder { color: var(--on-surface-variant); opacity: .85; }
+.kbd {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--surface-container-highest);
+  color: var(--on-surface-variant);
+  font-size: .9rem;
+  font-weight: 700;
+}
+@media (hover: none) { .kbd { display: none; } }
+
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.fchip {
+  height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 22px;                 /* rotondo da deselezionato... */
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-radius .45s var(--spring), background .2s, color .2s, transform .3s var(--spring);
+}
+.fchip:hover { background: var(--surface-container-highest); }
+.fchip:active { transform: scale(.94); }
+.fchip[aria-pressed="true"] {
+  border-radius: 14px;                 /* ...e si squadra quando è selezionato */
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+/* ==========================================================================
+   Sezioni e schede dei servizi
+   ========================================================================== */
+.section { display: flex; flex-direction: column; gap: 16px; }
+.section h2 { margin: 0 4px; font-size: 1.6rem; font-weight: 750; font-stretch: 110%; letter-spacing: -.01em; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 16px;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px;
+  border-radius: 32px;
+  background: var(--surface-container-low);
+  color: inherit;
+  text-decoration: none;
+  transition: border-radius .55s var(--spring), transform .4s var(--spring), background .2s;
+}
+.card:hover {
+  border-radius: 44px 18px 44px 18px;
+  background: var(--surface-container-high);
+  transform: translateY(-4px);
+}
+.card:active { transform: scale(.97); }
+.card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
+  overflow: hidden;
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 800;
+  background: var(--tone-bg);
+  color: var(--tone-fg);
+  transition: border-radius .55s var(--spring), transform .55s var(--spring);
+}
+.icon img { width: 62%; height: 62%; object-fit: contain; }
+.card:hover .icon { border-radius: 50%; transform: rotate(-8deg) scale(1.06); }
+.open {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface-container-highest);
+  color: var(--on-surface-variant);
+  transition: background .25s, color .25s, border-radius .45s var(--spring), transform .45s var(--spring);
+}
+.card:hover .open { background: var(--primary); color: var(--on-primary); border-radius: 14px; transform: scale(1.1); }
+.card-body { display: flex; flex-direction: column; gap: 2px; }
+.card h3 { margin: 0; font-size: 1.3rem; line-height: 1.2; font-weight: 700; font-stretch: 108%; }
+.card p {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font-size: .95rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-foot { margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.addr { color: var(--on-surface-variant); font-size: .82rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 999px;
+  font-size: .8rem;
+  font-weight: 650;
+  background: var(--surface-container-highest);
+  color: var(--on-surface-variant);
+  transition: background .3s, color .3s;
+}
+.status .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.status.up   { background: var(--ok-container);  color: var(--on-ok-container); }
+.status.down { background: var(--err-container); color: var(--on-err-container); }
+.status.checking .dot { animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(.35); opacity: .5; } }
+
+.empty {
+  padding: 40px 24px;
+  border-radius: 36px;
+  background: var(--surface-container-low);
+  color: var(--on-surface-variant);
+  text-align: center;
+}
+.empty strong { display: block; margin-bottom: 4px; color: var(--on-surface); font-size: 1.2rem; font-weight: 700; font-stretch: 108%; }
+.empty span { display: block; overflow-wrap: anywhere; }
+
+/* ==========================================================================
+   Widget di sistema con indicatore di avanzamento ondulato
+   ========================================================================== */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 16px; }
+.tile {
+  --track: color-mix(in oklab, var(--tone-fg) 18%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+  border-radius: 36px;
+  background: var(--tone-bg);
+  color: var(--tone-fg);
+  transition: border-radius .55s var(--spring), opacity .3s;
+}
+.tile:hover { border-radius: 24px 52px 24px 52px; }
+.tile.hot { --tone-accent: var(--err); }
+.tile.stale { opacity: .6; }
+.tile-label { font-size: 1rem; font-weight: 650; font-stretch: 105%; }
+.tile-value { font-size: 3.4rem; line-height: 1; font-weight: 850; font-stretch: 118%; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.tile-value .unit { margin-left: 3px; font-size: 1.5rem; font-weight: 600; opacity: .75; }
+.tile-sub { display: flex; flex-direction: column; gap: 2px; font-size: .92rem; opacity: .9; }
+
+.wavy { position: relative; height: 12px; }
+.wavy-track { position: absolute; left: 0; right: 0; top: 4px; height: 4px; border-radius: 2px; background: var(--track); }
+.wavy-track::after { content: ""; position: absolute; right: 0; top: 0; width: 4px; height: 4px; border-radius: 50%; background: var(--tone-accent); }
+.wavy-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 12px;
+  width: 2%;
+  background: var(--tone-accent);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 12' width='24' height='12'%3E%3Cpath d='M-12 6Q-6 0 0 6T12 6T24 6T36 6' fill='none' stroke='black' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") 0 0 / 24px 12px repeat-x;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 12' width='24' height='12'%3E%3Cpath d='M-12 6Q-6 0 0 6T12 6T24 6T36 6' fill='none' stroke='black' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") 0 0 / 24px 12px repeat-x;
+  transition: width .9s var(--spring), background .3s;
+  animation: wave 1.2s linear infinite;
+}
+@keyframes wave {
+  from { -webkit-mask-position: 0 0;    mask-position: 0 0; }
+  to   { -webkit-mask-position: 24px 0; mask-position: 24px 0; }
+}
+
+.note { padding: 16px 20px; border-radius: 24px; background: var(--err-container); color: var(--on-err-container); font-weight: 500; }
+
+.foot { text-align: center; color: var(--on-surface-variant); font-size: .85rem; }
+.foot code { padding: 2px 8px; border-radius: 8px; background: var(--surface-container-high); font-size: .9em; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <section class="hero" aria-label="Benvenuto">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+
+    <div class="hero-top">
+      <span class="brand" id="brand">NAS</span>
+      <div class="swatches" id="swatches" role="radiogroup" aria-label="Colore del tema"></div>
+    </div>
+
+    <h1 class="greeting" id="greeting">Ciao</h1>
+
+    <div class="clock-row">
+      <div class="clock" aria-hidden="true"><span id="hh">--</span><span class="colon">:</span><span id="mm">--</span></div>
+      <div class="clock-side">
+        <span class="date" id="date"></span>
+        <div class="chips">
+          <span class="chip" id="chipOnline">Verifica dei servizi in corso</span>
+          <span class="chip" id="chipUptime" hidden></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="toolbar" aria-label="Cerca tra i servizi">
+    <label class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <input id="search" type="search" placeholder="Cerca un servizio" autocomplete="off" spellcheck="false" aria-label="Cerca un servizio">
+      <span class="kbd" aria-hidden="true">/</span>
+    </label>
+    <div class="filters" id="filters" role="group" aria-label="Filtra per categoria" hidden></div>
+  </section>
+
+  <section class="section" aria-labelledby="servicesTitle">
+    <h2 id="servicesTitle">Servizi</h2>
+    <div class="grid" id="services"></div>
+    <div class="empty" id="empty" hidden>
+      <strong id="emptyTitle"></strong>
+      <span id="emptyText"></span>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="systemTitle">
+    <h2 id="systemTitle">Risorse del NAS</h2>
+    <div class="note" id="statsNote" hidden>Statistiche non disponibili. Controlla che il container nas-dashboard-stats sia avviato.</div>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <p class="foot">Per aggiungere o cambiare i servizi modifica <code>services.json</code> nella cartella di configurazione.</p>
+
+  <div class="note" id="modeNotice" hidden></div>
+
+  <noscript><p class="note">Questa dashboard ha bisogno di JavaScript per funzionare.</p></noscript>
+</div>
+
+<!-- Config opzionale per l'uso senza server (apertura diretta del file):
+     se il file non esiste il browser stampa solo un 404 innocuo in console,
+     window.NAS_CONFIG resta undefined e si usa la configurazione di riserva. -->
+<script src="config.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const STATS_URL = "/api/stats";
+  const ALL = "Tutti";
+  const HUES = [
+    { name: "Viola", hue: 285 },
+    { name: "Blu", hue: 250 },
+    { name: "Turchese", hue: 195 },
+    { name: "Verde", hue: 150 },
+    { name: "Arancione", hue: 55 },
+    { name: "Rosa", hue: 350 }
+  ];
+  const ARROW = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>';
+
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+  const pad = (n) => String(n).padStart(2, "0");
+  const nf = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 1 });
+  const dateFmt = new Intl.DateTimeFormat("it-IT", { weekday: "long", day: "numeric", month: "long" });
+
+  // Configurazione di riserva, usata quando services.json non è raggiungibile
+  // (tipicamente perché la pagina è stata aperta come file, senza alcun server:
+  // in quel caso il browser blocca fetch() per motivi di sicurezza/CORS).
+  // Per personalizzarla senza toccare questo file, crea un "config.js" accanto
+  // a index.html con: window.NAS_CONFIG = { ...stessa struttura di services.json... };
+  // <script> funziona anche aprendo la pagina a doppio clic, a differenza di fetch().
+  const DEFAULT_CONFIG = {
+    title: "Il mio NAS",
+    name: "",
+    statusIntervalSeconds: 15,
+    services: [
+      { name: "CasaOS", desc: "Pannello di controllo del server", icon: "🏠", port: 80, category: "Sistema" },
+      { name: "LM Studio", desc: "Modelli linguistici in locale", icon: "🧠", port: 10021, category: "AI" },
+      { name: "File WebDAV", desc: "Cartella condivisa Storage", icon: "📁", port: 5005, category: "File" }
+    ]
+  };
+
+  let cfg = { title: "NAS", name: "", statusIntervalSeconds: 15, services: [] };
+  let configError = null;
+  let usingFallbackConfig = false;
+  let items = [];
+  let activeCat = ALL;
+  let query = "";
+  let checking = false;
+
+  /* ---------- utilità DOM ---------- */
+  function h(tag, props = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [key, value] of Object.entries(props)) {
+      if (value == null || value === false) continue;
+      if (key === "class") node.className = value;
+      else if (key.startsWith("on") && typeof value === "function") node.addEventListener(key.slice(2), value);
+      else node.setAttribute(key, value === true ? "" : value);
+    }
+    for (const child of children.flat()) {
+      if (child == null) continue;
+      node.append(child.nodeType ? child : document.createTextNode(String(child)));
+    }
+    return node;
+  }
+
+  /* ---------- tema: tinta scelta dall'utente ---------- */
+  function applyHue(hue) {
+    document.documentElement.style.setProperty("--h", String(hue));
+    $$(".swatch").forEach((btn) => btn.setAttribute("aria-checked", String(Number(btn.dataset.hue) === hue)));
+    try { localStorage.setItem("nas-hue", String(hue)); } catch (e) { /* storage non disponibile */ }
+  }
+
+  function initTheme() {
+    let saved = null;
+    try { saved = localStorage.getItem("nas-hue"); } catch (e) { /* storage non disponibile */ }
+    const start = HUES.some((x) => String(x.hue) === saved) ? Number(saved) : HUES[0].hue;
+    const box = $("#swatches");
+    for (const { name, hue } of HUES) {
+      box.append(h("button", {
+        type: "button",
+        class: "swatch",
+        role: "radio",
+        "aria-label": name,
+        title: name,
+        "data-hue": String(hue),
+        style: `--sw: oklch(0.68 0.19 ${hue})`,
+        onclick: () => applyHue(hue)
+      }));
+    }
+    applyHue(start);
+  }
+
+  /* ---------- saluto e orologio ---------- */
+  function greetingFor(hour) {
+    if (hour >= 5 && hour < 13) return "Buongiorno";
+    if (hour >= 13 && hour < 18) return "Buon pomeriggio";
+    if (hour >= 18 && hour < 22) return "Buonasera";
+    return "Buonanotte";
+  }
+
+  function tick() {
+    const now = new Date();
+    $("#hh").textContent = pad(now.getHours());
+    $("#mm").textContent = pad(now.getMinutes());
+    $("#date").textContent = dateFmt.format(now);
+    const name = (cfg.name || "").trim();
+    $("#greeting").textContent = greetingFor(now.getHours()) + (name ? ", " + name : "");
+  }
+
+  /* ---------- servizi ---------- */
+  function resolveUrl(svc) {
+    if (svc.url) return svc.url;
+    const protocol = svc.protocol || "http";
+    const host = svc.host || location.hostname || "localhost";
+    const port = svc.port ? ":" + svc.port : "";
+    let path = svc.path || "";
+    if (path && !path.startsWith("/")) path = "/" + path;
+    return `${protocol}://${host}${port}${path}`;
+  }
+
+  function displayAddress(url) {
+    try { return new URL(url).host; } catch (e) { return url; }
+  }
+
+  function buildIcon(svc) {
+    const icon = (svc.icon || "").trim();
+    // Un vero link/percorso a un'immagine (SVG, PNG...) diventa <img>:
+    // - URL assoluto (http/https), percorso assoluto (/...) o data URI, oppure
+    // - percorso relativo che termina con un'estensione immagine (es. "icone/nas.svg").
+    const isLink = /^(https?:|\/|data:)/i.test(icon) || /\.(svg|png|jpe?g|webp|gif|ico)(\?.*)?$/i.test(icon);
+    if (isLink) return h("img", { src: icon, alt: "", loading: "lazy" });
+    return document.createTextNode(icon || (svc.name || "?").trim().charAt(0).toUpperCase());
+  }
+
+  function renderServices() {
+    const grid = $("#services");
+    grid.replaceChildren();
+    const tones = ["primary", "secondary", "tertiary"];
+
+    items = cfg.services.map((svc, index) => {
+      const url = resolveUrl(svc);
+      const statusText = h("span", {}, "Verifica");
+      const statusEl = h("span", { class: "status checking" }, h("span", { class: "dot" }), statusText);
+      const arrow = h("span", { class: "open" });
+      arrow.innerHTML = ARROW;
+
+      const node = h("a", {
+        class: "card tone-" + tones[index % tones.length],
+        href: url,
+        target: "_blank",
+        rel: "noopener",
+        title: `Apri ${svc.name || url}`
+      },
+        h("div", { class: "card-head" },
+          h("div", { class: "icon", "aria-hidden": "true" }, buildIcon(svc)),
+          arrow),
+        h("div", { class: "card-body" },
+          h("h3", {}, svc.name || url),
+          svc.desc ? h("p", {}, svc.desc) : null),
+        h("div", { class: "card-foot" },
+          statusEl,
+          h("span", { class: "addr" }, displayAddress(url))));
+
+      grid.append(node);
+      return {
+        svc,
+        url,
+        checkUrl: svc.checkUrl || url,
+        node,
+        statusEl,
+        statusText,
+        up: null,
+        haystack: [svc.name, svc.desc, svc.category, svc.port, displayAddress(url)]
+          .filter((x) => x != null && x !== "").join(" ").toLowerCase()
+      };
+    });
+  }
+
+  function renderFilters() {
+    const box = $("#filters");
+    box.replaceChildren();
+    const categories = [...new Set(cfg.services.map((s) => s.category).filter(Boolean))];
+    if (categories.length < 2) { box.hidden = true; return; }
+    box.hidden = false;
+    for (const cat of [ALL, ...categories]) {
+      box.append(h("button", {
+        type: "button",
+        class: "fchip",
+        "aria-pressed": String(cat === activeCat),
+        onclick: () => {
+          activeCat = cat;
+          $$(".fchip", box).forEach((btn) => btn.setAttribute("aria-pressed", String(btn.textContent === activeCat)));
+          applyFilter();
+        }
+      }, cat));
+    }
+  }
+
+  function applyFilter() {
+    const q = query.trim().toLowerCase();
+    let visible = 0;
+    for (const item of items) {
+      const show = (activeCat === ALL || item.svc.category === activeCat) && (!q || item.haystack.includes(q));
+      item.node.hidden = !show;
+      if (show) visible++;
+    }
+
+    const empty = $("#empty");
+    if (configError) {
+      empty.hidden = false;
+      $("#emptyTitle").textContent = "Impossibile leggere services.json";
+      $("#emptyText").textContent = "Controlla che il file sia nella cartella html e che il JSON sia valido (" + configError + ").";
+    } else if (!items.length) {
+      empty.hidden = false;
+      $("#emptyTitle").textContent = "Nessun servizio configurato";
+      $("#emptyText").textContent = "Aggiungi i tuoi servizi nel file services.json.";
+    } else if (!visible) {
+      empty.hidden = false;
+      $("#emptyTitle").textContent = "Nessun servizio trovato";
+      $("#emptyText").textContent = q
+        ? `Nessun risultato per “${query.trim()}”. Cancella la ricerca o scegli un'altra categoria.`
+        : "Scegli un'altra categoria.";
+    } else {
+      empty.hidden = true;
+    }
+  }
+
+  /* ---------- stato online/offline ---------- */
+  async function probe(url, timeout = 4000) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeout);
+    const start = performance.now();
+    try {
+      // no-cors: non leggiamo la risposta, ci basta sapere che il servizio risponde.
+      await fetch(url, { mode: "no-cors", cache: "no-store", credentials: "omit", signal: ctrl.signal });
+      return { up: true, ms: Math.round(performance.now() - start) };
+    } catch (e) {
+      return { up: false };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function setStatus(item, result) {
+    item.statusEl.classList.remove("checking", "up", "down");
+    item.statusEl.classList.add(result.up ? "up" : "down");
+    item.statusText.textContent = result.up ? `Online, ${result.ms} ms` : "Offline";
+  }
+
+  function updateOnlineChip() {
+    const chip = $("#chipOnline");
+    const known = items.filter((i) => i.up !== null);
+    if (!items.length) { chip.hidden = true; return; }
+    chip.hidden = false;
+    if (!known.length) { chip.textContent = "Verifica dei servizi in corso"; return; }
+    const up = known.filter((i) => i.up).length;
+    chip.textContent = `${up} di ${items.length} ${items.length === 1 ? "servizio online" : "servizi online"}`;
+    chip.classList.toggle("warn", up < items.length);
+  }
+
+  async function checkAll() {
+    if (checking || !items.length) return;
+    checking = true;
+    try {
+      await Promise.all(items.map(async (item) => {
+        const result = await probe(item.checkUrl);
+        item.up = result.up;
+        setStatus(item, result);
+      }));
+      updateOnlineChip();
+    } finally {
+      checking = false;
+    }
+  }
+
+  /* ---------- risorse di sistema ---------- */
+  const tiles = new Map();
+
+  function fmtBytes(value) {
+    const units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
+    let n = value;
+    let i = 0;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+    return n.toLocaleString("it-IT", { maximumFractionDigits: n < 10 ? 1 : 0 }) + " " + units[i];
+  }
+
+  function fmtUptime(seconds) {
+    const d = Math.floor(seconds / 86400);
+    const hrs = Math.floor((seconds % 86400) / 3600);
+    const min = Math.floor((seconds % 3600) / 60);
+    if (d > 0) return `${d} g ${hrs} h`;
+    if (hrs > 0) return `${hrs} h ${min} min`;
+    return `${min} min`;
+  }
+
+  function makeTile(label, tone) {
+    const value = h("div", { class: "tile-value" }, "–");
+    const fill = h("div", { class: "wavy-fill" });
+    const wavy = h("div", { class: "wavy", "aria-hidden": "true" }, h("div", { class: "wavy-track" }), fill);
+    const sub = h("div", { class: "tile-sub" });
+    const root = h("article", { class: "tile tone-" + tone }, h("div", { class: "tile-label" }, label), value, wavy, sub);
+    return {
+      root,
+      set(pct, lines) {
+        const clamped = Math.max(0, Math.min(100, pct));
+        root.classList.remove("stale");
+        root.classList.toggle("hot", clamped >= 90);
+        root.setAttribute("aria-label", `${label} ${Math.round(clamped)}%`);
+        value.replaceChildren(String(Math.round(clamped)), h("span", { class: "unit" }, "%"));
+        fill.style.width = Math.max(clamped, 2) + "%";
+        sub.replaceChildren(...lines.map((line) => h("div", {}, line)));
+      },
+      fail(text) {
+        root.classList.add("stale");
+        sub.replaceChildren(h("div", {}, text));
+      }
+    };
+  }
+
+  function getTile(key, label, tone) {
+    let tile = tiles.get(key);
+    if (!tile) {
+      tile = makeTile(label, tone);
+      tiles.set(key, tile);
+      $("#tiles").append(tile.root);
+    }
+    return tile;
+  }
+
+  function renderStats(s) {
+    $("#statsNote").hidden = true;
+
+    const cpuLines = [];
+    if (Array.isArray(s.cpu.load)) cpuLines.push("Carico medio " + nf.format(s.cpu.load[0]));
+    if (s.cpu.temp != null) cpuLines.push("Temperatura " + nf.format(s.cpu.temp) + " °C");
+    getTile("cpu", "Processore", "primary").set(s.cpu.percent, cpuLines.length ? cpuLines : ["In uso"]);
+
+    getTile("mem", "Memoria", "tertiary")
+      .set(s.memory.percent, [`${fmtBytes(s.memory.used)} su ${fmtBytes(s.memory.total)}`]);
+
+    for (const disk of s.disks || []) {
+      const tile = getTile("disk:" + disk.name, "Disco " + disk.name, "secondary");
+      if (disk.error) tile.fail("Percorso non disponibile");
+      else tile.set(disk.percent, [`${fmtBytes(disk.used)} su ${fmtBytes(disk.total)}`]);
+    }
+
+    if (typeof s.uptime === "number") {
+      const chip = $("#chipUptime");
+      chip.hidden = false;
+      chip.textContent = "Acceso da " + fmtUptime(s.uptime);
+    }
+  }
+
+  async function refreshStats() {
+    try {
+      const res = await fetch(STATS_URL, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      renderStats(await res.json());
+    } catch (e) {
+      $("#statsNote").hidden = false;
+      tiles.forEach((tile) => tile.fail("Dati non aggiornati"));
+    }
+  }
+
+  /* ---------- ricerca ---------- */
+  function initSearch() {
+    const input = $("#search");
+    input.addEventListener("input", () => { query = input.value; applyFilter(); });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const first = items.find((i) => !i.node.hidden);
+        if (first) window.open(first.url, "_blank", "noopener");
+      } else if (e.key === "Escape") {
+        input.value = "";
+        query = "";
+        applyFilter();
+        input.blur();
+      }
+    });
+    document.addEventListener("keydown", (e) => {
+      const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+      if (e.key === "/" && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        input.focus();
+      }
+    });
+  }
+
+  /* ---------- avvio ---------- */
+  async function loadConfig() {
+    // 1) Se la pagina è servita da un server (Docker, "python -m http.server", ecc.)
+    //    proviamo a leggere services.json, che è la fonte "vera" e modificabile
+    //    dal NAS senza toccare il codice.
+    if (location.protocol !== "file:") {
+      try {
+        const res = await fetch("services.json", { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        cfg = Object.assign(cfg, data);
+        if (!Array.isArray(cfg.services)) cfg.services = [];
+        return;
+      } catch (e) {
+        configError = e.message || "errore sconosciuto";
+      }
+    }
+
+    // 2) Pagina aperta a doppio clic (file://) oppure services.json non raggiungibile:
+    //    fetch() su file locali è bloccato dal browser, quindi non funzionerà mai in
+    //    questo caso. Usiamo invece window.NAS_CONFIG, se presente: viene definito da
+    //    un eventuale "config.js" caricato con <script>, che funziona anche da file://.
+    if (window.NAS_CONFIG && typeof window.NAS_CONFIG === "object") {
+      cfg = Object.assign(cfg, window.NAS_CONFIG);
+      if (!Array.isArray(cfg.services)) cfg.services = [];
+      configError = null;
+      usingFallbackConfig = true;
+      return;
+    }
+
+    // 3) Nessuna config esterna disponibile: usiamo quella di riserva incorporata
+    //    nella pagina, così la dashboard mostra comunque qualcosa.
+    cfg = Object.assign({}, DEFAULT_CONFIG);
+    usingFallbackConfig = true;
+  }
+
+  function renderModeNotice() {
+    const notice = $("#modeNotice");
+    if (!notice) return;
+    if (location.protocol === "file:") {
+      notice.hidden = false;
+      notice.textContent = usingFallbackConfig
+        ? "Pagina aperta come file, senza server: mostro una configurazione di esempio. Le statistiche del NAS non sono disponibili in questa modalità (richiedono il container in esecuzione). Per personalizzare i servizi senza un server, crea un file \"config.js\" accanto a index.html con window.NAS_CONFIG = {...}."
+        : "Pagina aperta come file, senza server: le statistiche del NAS non sono disponibili in questa modalità (richiedono il container in esecuzione).";
+    } else {
+      notice.hidden = true;
+    }
+  }
+
+  async function init() {
+    initTheme();
+    initSearch();
+    tick();
+    setInterval(tick, 1000);
+
+    await loadConfig();
+    renderModeNotice();
+    $("#brand").textContent = cfg.title || "NAS";
+    document.title = cfg.title || "NAS";
+    tick();
+    renderServices();
+    renderFilters();
+    applyFilter();
+    updateOnlineChip();
+
+    checkAll();
+    refreshStats();
+
+    const statusEvery = Math.max(5, Number(cfg.statusIntervalSeconds) || 15) * 1000;
+    setInterval(() => { if (!document.hidden) checkAll(); }, statusEvery);
+    setInterval(() => { if (!document.hidden) refreshStats(); }, 3000);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) { checkAll(); refreshStats(); }
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
