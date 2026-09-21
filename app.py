@@ -46,7 +46,7 @@ def parse_disks(spec):
 
 
 DISKS = parse_disks(DISKS_SPEC)
-state = {"cpu": 0.0}
+state = {"cpu": 0.0, "net_rx": 0.0, "net_tx": 0.0}
 
 
 def prepare_config():
@@ -114,6 +114,14 @@ def read_memory():
     available = info.get("MemAvailable", info.get("MemFree", 0))
     used = max(0, total - available)
     percent = round(100.0 * used / total, 1) if total else 0.0
+    return {"total": total, "used": used, "percent": percent}, info
+
+
+def read_swap(info):
+    total = info.get("SwapTotal", 0)
+    free = info.get("SwapFree", 0)
+    used = max(0, total - free)
+    percent = round(100.0 * used / total, 1) if total else 0.0
     return {"total": total, "used": used, "percent": percent}
 
 
@@ -161,10 +169,48 @@ def read_load():
         return None
 
 
+def read_net_bytes():
+    """Somma rx/tx (in byte) di tutte le interfacce, esclusa loopback."""
+    rx = tx = 0
+    try:
+        with open("/proc/net/dev") as f:
+            lines = f.readlines()[2:]
+        for line in lines:
+            name, _, rest = line.partition(":")
+            name = name.strip()
+            if not name or name == "lo":
+                continue
+            fields = rest.split()
+            if len(fields) < 9:
+                continue
+            rx += int(fields[0])
+            tx += int(fields[8])
+    except Exception:
+        return None
+    return rx, tx
+
+
+def net_sampler():
+    prev = read_net_bytes()
+    prev_time = time.time()
+    while True:
+        time.sleep(2)
+        now = time.time()
+        cur = read_net_bytes()
+        if prev is not None and cur is not None:
+            dt = max(0.001, now - prev_time)
+            state["net_rx"] = max(0.0, (cur[0] - prev[0]) / dt)
+            state["net_tx"] = max(0.0, (cur[1] - prev[1]) / dt)
+        prev, prev_time = cur, now
+
+
 def collect():
+    memory, meminfo = read_memory()
     return {
         "cpu": {"percent": state["cpu"], "temp": read_temperature(), "load": read_load()},
-        "memory": read_memory(),
+        "memory": memory,
+        "swap": read_swap(meminfo),
+        "net": {"rx_bps": round(state["net_rx"], 1), "tx_bps": round(state["net_tx"], 1)},
         "disks": read_disks(),
         "uptime": read_uptime(),
         "time": int(time.time()),
@@ -242,6 +288,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     prepare_config()
     threading.Thread(target=cpu_sampler, daemon=True).start()
+    threading.Thread(target=net_sampler, daemon=True).start()
     server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     print(f"dashboard in ascolto sulla porta {PORT}", flush=True)
     server.serve_forever()
