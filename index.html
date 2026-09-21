@@ -237,27 +237,25 @@ button { font: inherit; }
 }
 .chip.warn { background: var(--err-container); color: var(--on-err-container); }
 
-/* ==========================================================================
-   Ricerca e filtri
-   ========================================================================== */
-.toolbar { display: flex; flex-direction: column; gap: 14px; }
-.search {
+/* --- Ricerca compatta dentro la hero --- */
+.hero-search { display: block; }
+.search-pill {
   display: flex;
   align-items: center;
   gap: 14px;
   height: 64px;
-  padding: 0 20px 0 24px;
+  padding: 0 12px 0 24px;
   border-radius: 32px;
-  background: var(--surface-container-high);
-  transition: border-radius .5s var(--spring), background .2s, box-shadow .2s;
+  background: var(--surface);
+  color: var(--on-surface);
+  transition: border-radius .5s var(--spring), box-shadow .2s;
 }
-.search:focus-within {
+.search-pill:focus-within {
   border-radius: 20px;
-  background: var(--surface-container-highest);
-  box-shadow: 0 0 0 3px var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--on-primary) 55%, transparent);
 }
-.search svg { flex: none; width: 26px; height: 26px; fill: var(--on-surface-variant); }
-.search input {
+.search-pill > svg { flex: none; width: 26px; height: 26px; fill: var(--on-surface-variant); }
+.search-pill input {
   flex: 1;
   min-width: 0;
   border: 0;
@@ -268,20 +266,45 @@ button { font: inherit; }
   font-size: 1.15rem;
   font-weight: 500;
 }
-.search input::placeholder { color: var(--on-surface-variant); opacity: .85; }
-.kbd {
+.search-pill input::placeholder { color: var(--on-surface-variant); opacity: .85; }
+.search-pill .kbd {
   flex: none;
   display: grid;
   place-items: center;
   min-width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: var(--surface-container-highest);
+  background: var(--surface-container-high);
   color: var(--on-surface-variant);
   font-size: .9rem;
   font-weight: 700;
 }
-@media (hover: none) { .kbd { display: none; } }
+.search-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: border-radius .4s var(--spring), background .2s, color .2s;
+}
+.search-close:hover {
+  border-radius: 14px;
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+}
+@media (hover: none) { .search-pill .kbd { display: none; } }
+
+/* ==========================================================================
+   Filtri
+   ========================================================================== */
+.toolbar { display: flex; flex-direction: column; gap: 14px; }
 
 .filters { display: flex; flex-wrap: wrap; gap: 8px; }
 .fchip {
@@ -760,11 +783,23 @@ button { font: inherit; }
     <div class="hero-top">
       <span class="brand" id="brand">NAS</span>
       <div class="hero-actions">
+        <button type="button" class="gear" id="searchToggle" title="Cerca" aria-label="Cerca" aria-expanded="false" aria-controls="heroSearch">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        </button>
         <span class="account-name" id="accountName"></span>
         <button type="button" class="avatar" id="avatarBtn" title="Il mio profilo" aria-label="Il mio profilo">🙂</button>
         <button type="button" class="gear" id="settingsBtn" title="Impostazioni" aria-label="Impostazioni">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94a7.07 7.07 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.24-1.12.56-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.67 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.4.31.6.22l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.58-.24 1.12-.56 1.62-.94l2.39.96c.2.09.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/></svg>
         </button>
+      </div>
+    </div>
+
+    <div class="hero-search" id="heroSearch" hidden>
+      <div class="search-pill" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input id="search" type="search" placeholder="Cerca un servizio" autocomplete="off" spellcheck="false" aria-label="Cerca un servizio">
+        <span class="kbd" aria-hidden="true">/</span>
+        <button type="button" class="search-close" id="searchClose" aria-label="Chiudi ricerca">✕</button>
       </div>
     </div>
 
@@ -782,12 +817,7 @@ button { font: inherit; }
     </div>
   </section>
 
-  <section class="toolbar" aria-label="Cerca tra i servizi">
-    <label class="search">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-      <input id="search" type="search" placeholder="Cerca un servizio" autocomplete="off" spellcheck="false" aria-label="Cerca un servizio">
-      <span class="kbd" aria-hidden="true">/</span>
-    </label>
+  <section class="toolbar" aria-label="Filtra i servizi">
     <div class="filters" id="filters" role="group" aria-label="Filtra per categoria" hidden></div>
   </section>
 
@@ -1713,18 +1743,44 @@ button { font: inherit; }
     });
   }
 
-  /* ---------- ricerca ---------- */
+  /* ---------- ricerca (pannello compattabile) ---------- */
   function initSearch() {
     const input = $("#search");
+    const wrap = $("#heroSearch");
+    const toggle = $("#searchToggle");
+    const closeBtn = $("#searchClose");
+    const pill = wrap.querySelector(".search-pill");
+
+    const open = () => {
+      wrap.hidden = false;
+      toggle.setAttribute("aria-expanded", "true");
+      requestAnimationFrame(() => input.focus());
+    };
+    const hide = () => {
+      wrap.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+      if (input.value || query) {
+        input.value = "";
+        query = "";
+        applyFilter();
+      }
+    };
+
+    toggle.addEventListener("click", () => { wrap.hidden ? open() : hide(); });
+    closeBtn.addEventListener("click", hide);
+
+    pill.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      input.focus();
+    });
+
     input.addEventListener("input", () => { query = input.value; applyFilter(); });
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         const first = items.find((i) => !i.node.hidden);
         if (first) window.open(first.url, "_blank", "noopener");
       } else if (e.key === "Escape") {
-        input.value = "";
-        query = "";
-        applyFilter();
+        hide();
         input.blur();
       }
     });
@@ -1732,7 +1788,7 @@ button { font: inherit; }
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
       if (e.key === "/" && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
-        input.focus();
+        open();
       }
     });
   }
