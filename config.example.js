@@ -12,6 +12,9 @@
 window.NAS_CONFIG = {
   title: "Il mio NAS",
   name: "",
+  avatarEmoji: "🙂",       // emoji del mini profilo (o lascia vuoto)
+  avatar: "",               // foto del profilo come data URI, se ne vuoi una
+  sshUrl: "http://192.168.1.207:7681/",   // terminale web di ZimaOS
   services: [
     {
       name: "CasaOS",
