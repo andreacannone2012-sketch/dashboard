@@ -51,7 +51,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --primary: oklch(0.80 0.13 var(--h));
     --on-primary: oklch(0.28 0.13 var(--h));
     --primary-container: oklch(0.38 0.15 var(--h));
@@ -80,6 +80,35 @@
     --on-err-container: oklch(0.92 0.06 27);
   }
 }
+
+:root[data-theme="dark"] {
+    --primary: oklch(0.80 0.13 var(--h));
+    --on-primary: oklch(0.28 0.13 var(--h));
+    --primary-container: oklch(0.38 0.15 var(--h));
+    --on-primary-container: oklch(0.92 0.06 var(--h));
+
+    --secondary-container: oklch(0.36 0.06 calc(var(--h) + 30));
+    --on-secondary-container: oklch(0.92 0.04 calc(var(--h) + 30));
+    --secondary: oklch(0.80 0.08 calc(var(--h) + 30));
+
+    --tertiary-container: oklch(0.38 0.10 calc(var(--h) + 85));
+    --on-tertiary-container: oklch(0.93 0.06 calc(var(--h) + 85));
+    --tertiary: oklch(0.82 0.12 calc(var(--h) + 85));
+
+    --surface: oklch(0.19 0.015 var(--h));
+    --surface-container-low: oklch(0.22 0.018 var(--h));
+    --surface-container: oklch(0.245 0.02 var(--h));
+    --surface-container-high: oklch(0.275 0.022 var(--h));
+    --surface-container-highest: oklch(0.305 0.024 var(--h));
+    --on-surface: oklch(0.93 0.012 var(--h));
+    --on-surface-variant: oklch(0.78 0.02 var(--h));
+
+    --ok-container: oklch(0.36 0.08 150);
+    --on-ok-container: oklch(0.92 0.10 150);
+    --err: oklch(0.75 0.16 27);
+    --err-container: oklch(0.38 0.11 27);
+    --on-err-container: oklch(0.92 0.06 27);
+  }
 
 /* ==========================================================================
    Base
@@ -420,6 +449,204 @@ button { font: inherit; }
 .foot { text-align: center; color: var(--on-surface-variant); font-size: .85rem; }
 .foot code { padding: 2px 8px; border-radius: 8px; background: var(--surface-container-high); font-size: .9em; }
 
+
+/* ==========================================================================
+   Icone dei servizi: base SEMPRE bianca (emoji comprese), in ogni tema
+   ========================================================================== */
+.icon,
+.icon-sm,
+.avatar,
+.avatar-lg {
+  background: #ffffff !important;
+  color: #111111 !important;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, #000 10%, transparent);
+}
+
+/* ==========================================================================
+   Account e impostazioni (angolo dell'hero)
+   ========================================================================== */
+.hero-actions { display: flex; align-items: center; gap: 10px; }
+.account-name { font-weight: 650; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-radius .45s var(--spring), transform .35s var(--spring);
+}
+.avatar:hover { border-radius: 16px; transform: scale(1.06); }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.gear {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--on-primary) 16%, transparent);
+  color: var(--on-primary);
+  cursor: pointer;
+  transition: border-radius .45s var(--spring), transform .35s var(--spring);
+}
+.gear:hover { border-radius: 16px; transform: scale(1.06); }
+.gear svg { width: 24px; height: 24px; fill: currentColor; }
+
+/* ==========================================================================
+   Pannello impostazioni
+   ========================================================================== */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: color-mix(in oklab, #000 48%, transparent);
+}
+.sheet {
+  width: min(600px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: clamp(18px, 3vw, 28px);
+  border-radius: clamp(28px, 4vw, 40px);
+  background: var(--surface-container-low);
+  color: var(--on-surface);
+}
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sheet-head h2 { margin: 0; font-size: 1.5rem; font-weight: 750; font-stretch: 108%; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tab {
+  height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 21px;
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-radius .45s var(--spring), background .2s, color .2s;
+}
+.tab[aria-selected="true"] { border-radius: 13px; background: var(--primary); color: var(--on-primary); }
+.pane { display: flex; flex-direction: column; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label { font-size: .85rem; font-weight: 650; color: var(--on-surface-variant); }
+.field input, .field select, .field textarea {
+  min-height: 52px;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--surface-container-high);
+  color: inherit;
+  font: inherit;
+  outline: 0;
+}
+.field input:focus, .field select:focus { box-shadow: 0 0 0 3px var(--primary); }
+.row { display: flex; flex-wrap: wrap; gap: 10px; }
+.row > * { flex: 1 1 180px; }
+.btn {
+  height: 52px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 26px;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-radius .45s var(--spring), transform .3s var(--spring), background .2s;
+}
+.btn:hover { border-radius: 16px; }
+.btn:active { transform: scale(.96); }
+.btn.ghost { background: var(--surface-container-high); color: var(--on-surface); }
+.btn.danger { background: var(--err-container); color: var(--on-err-container); }
+.btn.small { height: 42px; padding: 0 16px; border-radius: 21px; font-size: .9rem; }
+
+.seg { display: flex; gap: 8px; flex-wrap: wrap; }
+.seg button {
+  flex: 1 1 100px;
+  height: 46px;
+  border: 0;
+  border-radius: 23px;
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-radius .45s var(--spring), background .2s, color .2s;
+}
+.seg button[aria-pressed="true"] { border-radius: 14px; background: var(--primary); color: var(--on-primary); }
+
+.sheet .swatches { background: var(--surface-container-high); width: max-content; }
+.sheet .swatch[aria-checked="true"] { box-shadow: 0 0 0 2.5px var(--surface-container-high), 0 0 0 5px var(--primary); }
+
+.srow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 22px;
+  background: var(--surface-container);
+}
+.icon-sm {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  overflow: hidden;
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 800;
+}
+.icon-sm img { width: 70%; height: 70%; object-fit: contain; }
+.srow .meta { flex: 1; min-width: 0; }
+.srow .meta b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.srow .meta small { color: var(--on-surface-variant); overflow-wrap: anywhere; }
+.iconbtn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+  cursor: pointer;
+  font-size: 1.05rem;
+  transition: border-radius .4s var(--spring), background .2s;
+}
+.iconbtn:hover { border-radius: 14px; background: var(--surface-container-highest); }
+.iconbtn:disabled { opacity: .35; cursor: default; }
+
+.avatar-lg {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  font-size: 44px;
+  line-height: 1;
+  font-weight: 800;
+  margin: 0 auto;
+}
+.avatar-lg img { width: 100%; height: 100%; object-fit: cover; }
+.hint { color: var(--on-surface-variant); font-size: .85rem; }
+.saveline { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.saveline .hint { flex: 1; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: .001ms !important;
@@ -438,7 +665,13 @@ button { font: inherit; }
 
     <div class="hero-top">
       <span class="brand" id="brand">NAS</span>
-      <div class="swatches" id="swatches" role="radiogroup" aria-label="Colore del tema"></div>
+      <div class="hero-actions">
+        <span class="account-name" id="accountName"></span>
+        <button type="button" class="avatar" id="avatarBtn" title="Il mio profilo" aria-label="Il mio profilo">🙂</button>
+        <button type="button" class="gear" id="settingsBtn" title="Impostazioni" aria-label="Impostazioni">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94a7.07 7.07 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.24-1.12.56-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.67 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.4.31.6.22l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.58-.24 1.12-.56 1.62-.94l2.39.96c.2.09.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/></svg>
+        </button>
+      </div>
     </div>
 
     <h1 class="greeting" id="greeting">Ciao</h1>
@@ -479,11 +712,143 @@ button { font: inherit; }
     <div class="tiles" id="tiles"></div>
   </section>
 
-  <p class="foot">Per aggiungere o cambiare i servizi modifica <code>services.json</code> nella cartella di configurazione.</p>
+  <p class="foot">Servizi, profilo e colori si modificano dall'icona <strong>impostazioni</strong> in alto a destra. Il file <code>services.json</code> resta comunque modificabile a mano.</p>
 
   <div class="note" id="modeNotice" hidden></div>
 
   <noscript><p class="note">Questa dashboard ha bisogno di JavaScript per funzionare.</p></noscript>
+</div>
+
+
+<!-- ======================= PANNELLO IMPOSTAZIONI ======================= -->
+<div class="backdrop" id="settingsBackdrop" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="sheet-head">
+      <h2 id="settingsTitle">Impostazioni</h2>
+      <button type="button" class="iconbtn" id="settingsClose" aria-label="Chiudi">✕</button>
+    </div>
+
+    <div class="tabs" id="settingsTabs" role="tablist">
+      <button type="button" class="tab" role="tab" data-tab="profilo" aria-selected="true">Profilo</button>
+      <button type="button" class="tab" role="tab" data-tab="aspetto" aria-selected="false">Aspetto</button>
+      <button type="button" class="tab" role="tab" data-tab="servizi" aria-selected="false">Servizi</button>
+      <button type="button" class="tab" role="tab" data-tab="sistema" aria-selected="false">Sistema</button>
+    </div>
+
+    <!-- PROFILO -->
+    <div class="pane" data-pane="profilo">
+      <div class="avatar-lg" id="avatarPreview">🙂</div>
+      <div class="field">
+        <label for="fName">Il tuo nome</label>
+        <input id="fName" type="text" placeholder="Compare nel saluto" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="fTitle">Nome della dashboard</label>
+        <input id="fTitle" type="text" placeholder="Il mio NAS" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="fAvatarEmoji">Emoji del profilo</label>
+        <input id="fAvatarEmoji" type="text" maxlength="4" placeholder="🙂">
+      </div>
+      <div class="row">
+        <button type="button" class="btn ghost" id="avatarUpload">Carica una foto…</button>
+        <button type="button" class="btn ghost" id="avatarClear">Rimuovi la foto</button>
+      </div>
+      <input type="file" id="avatarFile" accept="image/*" hidden>
+      <p class="hint">Puoi usare un'emoji, una foto, oppure entrambe: se c'è la foto, ha la precedenza.</p>
+    </div>
+
+    <!-- ASPETTO -->
+    <div class="pane" data-pane="aspetto" hidden>
+      <div class="field">
+        <label>Colore del tema</label>
+        <div class="swatches" id="swatches" role="radiogroup" aria-label="Colore del tema"></div>
+      </div>
+      <div class="field">
+        <label>Tema</label>
+        <div class="seg" id="themeSeg">
+          <button type="button" data-theme-mode="light" aria-pressed="false">Chiaro</button>
+          <button type="button" data-theme-mode="dark" aria-pressed="false">Scuro</button>
+          <button type="button" data-theme-mode="auto" aria-pressed="true">Automatico</button>
+        </div>
+      </div>
+      <p class="hint">Le icone dei servizi restano sempre su base bianca, anche con il tema scuro.</p>
+    </div>
+
+    <!-- SERVIZI -->
+    <div class="pane" data-pane="servizi" hidden>
+      <div id="svcAdmin" class="pane"></div>
+      <button type="button" class="btn" id="svcAdd">+ Aggiungi servizio</button>
+    </div>
+
+    <!-- SISTEMA -->
+    <div class="pane" data-pane="sistema" hidden>
+      <div class="field">
+        <label for="fSsh">Terminale web / SSH di ZimaOS</label>
+        <input id="fSsh" type="text" placeholder="http://192.168.1.207:7681/" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="row">
+        <button type="button" class="btn" id="sshOpen">Apri il terminale</button>
+        <button type="button" class="btn ghost" id="sshAsService">Aggiungilo ai servizi</button>
+      </div>
+      <div class="field">
+        <label for="fInterval">Controllo dei servizi ogni (secondi)</label>
+        <input id="fInterval" type="number" min="5" max="600" step="5">
+      </div>
+      <p class="hint" id="storageHint"></p>
+    </div>
+
+    <div class="saveline">
+      <span class="hint" id="saveHint"></span>
+      <button type="button" class="btn" id="settingsSave">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= EDITOR SERVIZIO ======================= -->
+<div class="backdrop" id="svcBackdrop" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="svcTitle">
+    <div class="sheet-head">
+      <h2 id="svcTitle">Nuovo servizio</h2>
+      <button type="button" class="iconbtn" id="svcClose" aria-label="Chiudi">✕</button>
+    </div>
+    <div class="icon-sm" id="svcIconPreview" style="width:96px; height:96px; border-radius:28px; font-size:44px; margin:0 auto;">🔗</div>
+    <div class="field">
+      <label for="sName">Nome</label>
+      <input id="sName" type="text" placeholder="Es. Immich" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="sDesc">Descrizione</label>
+      <input id="sDesc" type="text" placeholder="A cosa serve" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="sIcon">Icona: emoji oppure link a un'immagine/SVG</label>
+      <input id="sIcon" type="text" placeholder="📷 oppure https://cdn.simpleicons.org/immich" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="row">
+      <button type="button" class="btn ghost small" id="sIconUpload">Carica un'icona…</button>
+      <button type="button" class="btn ghost small" id="sIconClear">Svuota l'icona</button>
+    </div>
+    <input type="file" id="sIconFile" accept="image/*" hidden>
+    <div class="row">
+      <div class="field">
+        <label for="sPort">Porta (usa l'IP di questa pagina)</label>
+        <input id="sPort" type="number" min="1" max="65535" placeholder="2283">
+      </div>
+      <div class="field">
+        <label for="sCategory">Categoria</label>
+        <input id="sCategory" type="text" placeholder="Sistema" autocomplete="off">
+      </div>
+    </div>
+    <div class="field">
+      <label for="sUrl">Oppure indirizzo completo (ha la precedenza sulla porta)</label>
+      <input id="sUrl" type="text" placeholder="http://192.168.1.207:2283" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="row">
+      <button type="button" class="btn danger" id="svcDelete" hidden>Elimina</button>
+      <button type="button" class="btn" id="svcSave">Salva servizio</button>
+    </div>
+  </div>
 </div>
 
 <!-- Config opzionale per l'uso senza server (apertura diretta del file):
@@ -529,7 +894,7 @@ button { font: inherit; }
     ]
   };
 
-  let cfg = { title: "NAS", name: "", statusIntervalSeconds: 15, services: [] };
+  let cfg = { title: "NAS", name: "", avatar: "", avatarEmoji: "", sshUrl: "http://192.168.1.207:7681/", statusIntervalSeconds: 15, services: [] };
   let configError = null;
   let usingFallbackConfig = false;
   let items = [];
@@ -876,11 +1241,331 @@ button { font: inherit; }
     });
   }
 
+  /* ---------- profilo, impostazioni e gestione dei servizi ---------- */
+  const SAVE_URL = "/api/services";
+  const LS_KEYS = { hue: "nas-hue", theme: "nas-theme", cfg: "nas-config", localOnly: "nas-config-local" };
+  let localOnly = false;          // true quando il server non può salvare (file://, /config in sola lettura)
+  let editingIndex = null;
+
+  function lsGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+  function lsSet(key, value) { try { localStorage.setItem(key, value); } catch (e) { /* storage non disponibile */ } }
+
+  /* --- tema chiaro/scuro/automatico --- */
+  function applyThemeMode(mode) {
+    if (mode === "light" || mode === "dark") document.documentElement.setAttribute("data-theme", mode);
+    else document.documentElement.removeAttribute("data-theme");
+    lsSet(LS_KEYS.theme, mode);
+    $$("#themeSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeMode === mode)));
+  }
+
+  function initThemeMode() {
+    const saved = lsGet(LS_KEYS.theme) || "auto";
+    applyThemeMode(saved);
+    $("#themeSeg").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-theme-mode]");
+      if (btn) applyThemeMode(btn.dataset.themeMode);
+    });
+  }
+
+  /* --- immagini ridimensionate, per non appesantire la configurazione --- */
+  function readImage(file, max) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = reject;
+        img.onload = () => {
+          const scale = Math.min(1, max / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(img.width * scale));
+          canvas.height = Math.max(1, Math.round(img.height * scale));
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/png"));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /* --- mini account --- */
+  function iconNodeFor(value, fallback) {
+    return buildIcon({ icon: value, name: fallback });
+  }
+
+  function renderAccount() {
+    const name = (cfg.name || "").trim();
+    $("#accountName").textContent = name;
+    const btn = $("#avatarBtn");
+    btn.replaceChildren(iconNodeFor(cfg.avatar || cfg.avatarEmoji || "", name || "🙂"));
+    const preview = $("#avatarPreview");
+    if (preview) preview.replaceChildren(iconNodeFor(cfg.avatar || cfg.avatarEmoji || "", name || "🙂"));
+  }
+
+  /* --- salvataggio della configurazione --- */
+  function configPayload() {
+    return {
+      title: cfg.title || "Il mio NAS",
+      name: cfg.name || "",
+      avatar: cfg.avatar || "",
+      avatarEmoji: cfg.avatarEmoji || "",
+      sshUrl: cfg.sshUrl || "",
+      statusIntervalSeconds: Number(cfg.statusIntervalSeconds) || 15,
+      services: cfg.services || []
+    };
+  }
+
+  async function saveConfig() {
+    const payload = configPayload();
+    lsSet(LS_KEYS.cfg, JSON.stringify(payload));
+    if (location.protocol === "file:") {
+      localOnly = true;
+      lsSet(LS_KEYS.localOnly, "1");
+      return { ok: false, reason: "pagina aperta senza server: salvato solo in questo browser" };
+    }
+    try {
+      const res = await fetch(SAVE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      localOnly = false;
+      lsSet(LS_KEYS.localOnly, "0");
+      return { ok: true };
+    } catch (e) {
+      localOnly = true;
+      lsSet(LS_KEYS.localOnly, "1");
+      return { ok: false, reason: "il server non ha potuto scrivere services.json: salvato solo in questo browser" };
+    }
+  }
+
+  let statusTimer = null;
+  function restartStatusTimer() {
+    if (statusTimer) clearInterval(statusTimer);
+    const every = Math.max(5, Number(cfg.statusIntervalSeconds) || 15) * 1000;
+    statusTimer = setInterval(() => { if (!document.hidden) checkAll(); }, every);
+  }
+
+  function refreshEverything() {
+    document.title = cfg.title || "NAS";
+    $("#brand").textContent = cfg.title || "NAS";
+    renderAccount();
+    tick();
+    renderServices();
+    renderFilters();
+    applyFilter();
+    updateOnlineChip();
+    checkAll();
+    restartStatusTimer();
+  }
+
+  /* --- pannello impostazioni --- */
+  function fillSettings() {
+    $("#fName").value = cfg.name || "";
+    $("#fTitle").value = cfg.title || "";
+    $("#fAvatarEmoji").value = cfg.avatarEmoji || "";
+    $("#fSsh").value = cfg.sshUrl || "http://192.168.1.207:7681/";
+    $("#fInterval").value = Number(cfg.statusIntervalSeconds) || 15;
+    $("#storageHint").textContent = localOnly
+      ? "Le modifiche sono salvate solo in questo browser: il server non può scrivere services.json."
+      : "Le modifiche vengono scritte in services.json sul NAS, quindi valgono per tutti i dispositivi.";
+    renderAccount();
+    renderServicesAdmin();
+  }
+
+  function showTab(name) {
+    $$("#settingsTabs .tab").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+    $$(".sheet .pane[data-pane]").forEach((p) => { p.hidden = p.dataset.pane !== name; });
+  }
+
+  function openSettings(tab) {
+    fillSettings();
+    showTab(tab || "profilo");
+    $("#saveHint").textContent = "";
+    $("#settingsBackdrop").hidden = false;
+  }
+  function closeSettings() { $("#settingsBackdrop").hidden = true; }
+
+  function initSettings() {
+    $("#settingsBtn").addEventListener("click", () => openSettings("profilo"));
+    $("#avatarBtn").addEventListener("click", () => openSettings("profilo"));
+    $("#settingsClose").addEventListener("click", closeSettings);
+    $("#settingsBackdrop").addEventListener("click", (e) => { if (e.target.id === "settingsBackdrop") closeSettings(); });
+    $("#settingsTabs").addEventListener("click", (e) => {
+      const btn = e.target.closest(".tab");
+      if (btn) showTab(btn.dataset.tab);
+    });
+
+    $("#fAvatarEmoji").addEventListener("input", (e) => {
+      cfg.avatarEmoji = e.target.value.trim();
+      renderAccount();
+    });
+    $("#avatarUpload").addEventListener("click", () => $("#avatarFile").click());
+    $("#avatarFile").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      try { cfg.avatar = await readImage(file, 256); renderAccount(); }
+      catch (err) { $("#saveHint").textContent = "Immagine non leggibile."; }
+    });
+    $("#avatarClear").addEventListener("click", () => { cfg.avatar = ""; renderAccount(); });
+
+    $("#sshOpen").addEventListener("click", () => {
+      const url = ($("#fSsh").value || "").trim() || "http://192.168.1.207:7681/";
+      window.open(url, "_blank", "noopener");
+    });
+    $("#sshAsService").addEventListener("click", () => {
+      const url = ($("#fSsh").value || "").trim() || "http://192.168.1.207:7681/";
+      cfg.services = cfg.services || [];
+      cfg.services.push({ name: "Terminale ZimaOS", desc: "Riga di comando del server", icon: "🖥️", url, category: "Sistema" });
+      renderServicesAdmin();
+      showTab("servizi");
+      $("#saveHint").textContent = "Aggiunto: premi Salva per confermare.";
+    });
+
+    $("#settingsSave").addEventListener("click", async () => {
+      cfg.name = $("#fName").value.trim();
+      cfg.title = $("#fTitle").value.trim() || "Il mio NAS";
+      cfg.avatarEmoji = $("#fAvatarEmoji").value.trim();
+      cfg.sshUrl = $("#fSsh").value.trim();
+      cfg.statusIntervalSeconds = Math.max(5, Number($("#fInterval").value) || 15);
+      const result = await saveConfig();
+      refreshEverything();
+      if (result.ok) closeSettings();
+      else { $("#saveHint").textContent = result.reason; $("#storageHint").textContent = result.reason; }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      if (!$("#svcBackdrop").hidden) closeServiceEditor();
+      else if (!$("#settingsBackdrop").hidden) closeSettings();
+    });
+
+    initServiceEditor();
+  }
+
+  /* --- elenco servizi dentro le impostazioni --- */
+  function renderServicesAdmin() {
+    const box = $("#svcAdmin");
+    box.replaceChildren();
+    const list = cfg.services || [];
+    if (!list.length) {
+      box.append(h("p", { class: "hint" }, "Nessun servizio: aggiungine uno con il pulsante qui sotto."));
+      return;
+    }
+    list.forEach((svc, index) => {
+      const move = (delta) => {
+        const target = index + delta;
+        if (target < 0 || target >= list.length) return;
+        [list[index], list[target]] = [list[target], list[index]];
+        renderServicesAdmin();
+      };
+      box.append(h("div", { class: "srow" },
+        h("div", { class: "icon-sm", "aria-hidden": "true" }, buildIcon(svc)),
+        h("div", { class: "meta" },
+          h("b", {}, svc.name || "Servizio"),
+          h("small", {}, displayAddress(resolveUrl(svc)))),
+        h("button", { type: "button", class: "iconbtn", title: "Sposta su", "aria-label": "Sposta su", disabled: index === 0, onclick: () => move(-1) }, "▲"),
+        h("button", { type: "button", class: "iconbtn", title: "Sposta giù", "aria-label": "Sposta giù", disabled: index === list.length - 1, onclick: () => move(1) }, "▼"),
+        h("button", { type: "button", class: "iconbtn", title: "Modifica", "aria-label": "Modifica", onclick: () => openServiceEditor(index) }, "✎"),
+        h("button", {
+          type: "button", class: "iconbtn", title: "Elimina", "aria-label": "Elimina",
+          onclick: () => {
+            if (!confirm(`Eliminare "${svc.name || "questo servizio"}"?`)) return;
+            list.splice(index, 1);
+            renderServicesAdmin();
+            $("#saveHint").textContent = "Eliminato: premi Salva per confermare.";
+          }
+        }, "🗑")));
+    });
+  }
+
+  /* --- editor di un singolo servizio --- */
+  function svcIconPreview() {
+    $("#svcIconPreview").replaceChildren(iconNodeFor($("#sIcon").value.trim(), $("#sName").value.trim() || "🔗"));
+  }
+
+  function openServiceEditor(index) {
+    editingIndex = index;
+    const svc = (index == null ? {} : cfg.services[index]) || {};
+    $("#svcTitle").textContent = index == null ? "Nuovo servizio" : "Modifica servizio";
+    $("#sName").value = svc.name || "";
+    $("#sDesc").value = svc.desc || "";
+    $("#sIcon").value = svc.icon || "";
+    $("#sPort").value = svc.port || "";
+    $("#sCategory").value = svc.category || "";
+    $("#sUrl").value = svc.url || "";
+    $("#svcDelete").hidden = index == null;
+    svcIconPreview();
+    $("#svcBackdrop").hidden = false;
+  }
+  function closeServiceEditor() { $("#svcBackdrop").hidden = true; editingIndex = null; }
+
+  function initServiceEditor() {
+    $("#svcAdd").addEventListener("click", () => openServiceEditor(null));
+    $("#svcClose").addEventListener("click", closeServiceEditor);
+    $("#svcBackdrop").addEventListener("click", (e) => { if (e.target.id === "svcBackdrop") closeServiceEditor(); });
+    $("#sIcon").addEventListener("input", svcIconPreview);
+    $("#sName").addEventListener("input", svcIconPreview);
+    $("#sIconUpload").addEventListener("click", () => $("#sIconFile").click());
+    $("#sIconFile").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      try { $("#sIcon").value = await readImage(file, 192); svcIconPreview(); }
+      catch (err) { /* immagine non leggibile */ }
+    });
+    $("#sIconClear").addEventListener("click", () => { $("#sIcon").value = ""; svcIconPreview(); });
+
+    $("#svcDelete").addEventListener("click", () => {
+      if (editingIndex == null) return;
+      cfg.services.splice(editingIndex, 1);
+      closeServiceEditor();
+      renderServicesAdmin();
+      $("#saveHint").textContent = "Eliminato: premi Salva per confermare.";
+    });
+
+    $("#svcSave").addEventListener("click", () => {
+      let url = $("#sUrl").value.trim();
+      if (url && !/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) url = "http://" + url;
+      const svc = {
+        name: $("#sName").value.trim() || "Servizio",
+        desc: $("#sDesc").value.trim(),
+        icon: $("#sIcon").value.trim(),
+        category: $("#sCategory").value.trim(),
+      };
+      const port = Number($("#sPort").value);
+      if (url) svc.url = url;
+      else if (port) svc.port = port;
+      cfg.services = cfg.services || [];
+      if (editingIndex == null) cfg.services.push(svc);
+      else cfg.services[editingIndex] = Object.assign({}, cfg.services[editingIndex], svc, url ? { port: undefined } : { url: undefined });
+      closeServiceEditor();
+      renderServicesAdmin();
+      $("#saveHint").textContent = "Modifiche pronte: premi Salva per confermare.";
+    });
+  }
+
   /* ---------- avvio ---------- */
   async function loadConfig() {
     // 1) Se la pagina è servita da un server (Docker, "python -m http.server", ecc.)
     //    proviamo a leggere services.json, che è la fonte "vera" e modificabile
     //    dal NAS senza toccare il codice.
+    localOnly = lsGet(LS_KEYS.localOnly) === "1";
+    const stored = lsGet(LS_KEYS.cfg);
+
+    // 0) Se un salvataggio precedente non è potuto arrivare al server, la copia
+    //    di questo browser è la più aggiornata e ha la precedenza.
+    if (localOnly && stored) {
+      try {
+        cfg = Object.assign(cfg, JSON.parse(stored));
+        if (!Array.isArray(cfg.services)) cfg.services = [];
+        return;
+      } catch (e) { /* copia locale illeggibile: si prosegue */ }
+    }
+
     if (location.protocol !== "file:") {
       try {
         const res = await fetch("services.json", { cache: "no-store" });
@@ -898,6 +1583,17 @@ button { font: inherit; }
     //    fetch() su file locali è bloccato dal browser, quindi non funzionerà mai in
     //    questo caso. Usiamo invece window.NAS_CONFIG, se presente: viene definito da
     //    un eventuale "config.js" caricato con <script>, che funziona anche da file://.
+    if (stored) {
+      try {
+        cfg = Object.assign(cfg, JSON.parse(stored));
+        if (!Array.isArray(cfg.services)) cfg.services = [];
+        configError = null;
+        usingFallbackConfig = true;
+        localOnly = true;
+        return;
+      } catch (e) { /* copia locale illeggibile: si prosegue */ }
+    }
+
     if (window.NAS_CONFIG && typeof window.NAS_CONFIG === "object") {
       cfg = Object.assign(cfg, window.NAS_CONFIG);
       if (!Array.isArray(cfg.services)) cfg.services = [];
@@ -918,7 +1614,7 @@ button { font: inherit; }
     if (location.protocol === "file:") {
       notice.hidden = false;
       notice.textContent = usingFallbackConfig
-        ? "Pagina aperta come file, senza server: mostro una configurazione di esempio. Le statistiche del NAS non sono disponibili in questa modalità (richiedono il container in esecuzione). Per personalizzare i servizi senza un server, crea un file \"config.js\" accanto a index.html con window.NAS_CONFIG = {...}."
+        ? "Pagina aperta come file, senza server: mostro una configurazione di esempio. Le statistiche del NAS non sono disponibili in questa modalità (richiedono il container in esecuzione). Puoi comunque modificare servizi e profilo dalle impostazioni: le modifiche restano salvate in questo browser."
         : "Pagina aperta come file, senza server: le statistiche del NAS non sono disponibili in questa modalità (richiedono il container in esecuzione).";
     } else {
       notice.hidden = true;
@@ -927,6 +1623,8 @@ button { font: inherit; }
 
   async function init() {
     initTheme();
+    initThemeMode();
+    initSettings();
     initSearch();
     tick();
     setInterval(tick, 1000);
@@ -935,6 +1633,7 @@ button { font: inherit; }
     renderModeNotice();
     $("#brand").textContent = cfg.title || "NAS";
     document.title = cfg.title || "NAS";
+    renderAccount();
     tick();
     renderServices();
     renderFilters();
@@ -944,8 +1643,7 @@ button { font: inherit; }
     checkAll();
     refreshStats();
 
-    const statusEvery = Math.max(5, Number(cfg.statusIntervalSeconds) || 15) * 1000;
-    setInterval(() => { if (!document.hidden) checkAll(); }, statusEvery);
+    restartStatusTimer();
     setInterval(() => { if (!document.hidden) refreshStats(); }, 3000);
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) { checkAll(); refreshStats(); }
