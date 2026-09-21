@@ -27,5 +27,50 @@
       "port": 5005,
       "category": "File"
     }
-  ]
+  ],
+  "serviceDisplay": "full",
+  "layout": {
+    "left": [
+      "cpu",
+      "mem"
+    ],
+    "right": [],
+    "hidden": [
+      "swap",
+      "net",
+      "load",
+      "uptime",
+      "svcsummary",
+      "weather"
+    ],
+    "widgets": {
+      "cpu": {
+        "type": "cpu"
+      },
+      "mem": {
+        "type": "mem"
+      },
+      "swap": {
+        "type": "swap"
+      },
+      "net": {
+        "type": "net"
+      },
+      "load": {
+        "type": "load"
+      },
+      "uptime": {
+        "type": "uptime"
+      },
+      "svcsummary": {
+        "type": "svcsummary"
+      },
+      "weather": {
+        "type": "weather",
+        "lat": null,
+        "lon": null,
+        "place": ""
+      }
+    }
+  }
 }
