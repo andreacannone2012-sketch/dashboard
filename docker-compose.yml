@@ -1,11 +1,11 @@
 services:
   nas-dashboard:
     # Sostituisci OWNER/REPO con il tuo utente e nome repository GitHub (tutto minuscolo)
-    image: ghcr.io/OWNER/REPO:latest
+    image: ghcr.io/andreacannone2012-sketch/dashboard:latest
     container_name: nas-dashboard
     restart: unless-stopped
     ports:
-      - "8088:8080"   # apri la dashboard da http://IP_DEL_NAS:8088
+      - "8088:8080"   
     environment:
       # Dischi mostrati nei widget: "Nome=percorso nel container", separati da virgola.
       # I percorsi devono corrispondere ai volumi qui sotto.
