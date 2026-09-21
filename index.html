@@ -309,6 +309,19 @@ button { font: inherit; }
 .section { display: flex; flex-direction: column; gap: 16px; }
 .section h2 { margin: 0 4px; font-size: 1.6rem; font-weight: 750; font-stretch: 110%; letter-spacing: -.01em; }
 
+/* Layout a tre colonne: widget a sinistra e destra, servizi al centro */
+.dashboard {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) 260px;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .dashboard { grid-template-columns: 1fr; }
+  .dashboard > #tilesLeft { order: 2; }
+  .dashboard > #tilesRight { order: 3; }
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
@@ -778,23 +791,22 @@ button { font: inherit; }
     <div class="filters" id="filters" role="group" aria-label="Filtra per categoria" hidden></div>
   </section>
 
-  <section class="section" aria-labelledby="servicesTitle">
-    <h2 id="servicesTitle">Servizi</h2>
-    <div class="grid" id="services"></div>
-    <div class="empty" id="empty" hidden>
-      <strong id="emptyTitle"></strong>
-      <span id="emptyText"></span>
-    </div>
-  </section>
+  <div class="note" id="statsNote" hidden>Statistiche non disponibili. Controlla che il container nas-dashboard-stats sia avviato.</div>
 
-  <section class="section" aria-labelledby="systemTitle">
-    <h2 id="systemTitle">Risorse del NAS</h2>
-    <div class="note" id="statsNote" hidden>Statistiche non disponibili. Controlla che il container nas-dashboard-stats sia avviato.</div>
-    <div class="tiles-grid" id="tiles">
-      <div class="tiles-col" id="tilesLeft"></div>
-      <div class="tiles-col" id="tilesRight"></div>
-    </div>
-  </section>
+  <div class="dashboard">
+    <div class="tiles-col" id="tilesLeft"></div>
+
+    <section class="section" aria-labelledby="servicesTitle">
+      <h2 id="servicesTitle">Servizi</h2>
+      <div class="grid" id="services"></div>
+      <div class="empty" id="empty" hidden>
+        <strong id="emptyTitle"></strong>
+        <span id="emptyText"></span>
+      </div>
+    </section>
+
+    <div class="tiles-col" id="tilesRight"></div>
+  </div>
 
   <p class="foot">Servizi, profilo e colori si modificano dall'icona <strong>impostazioni</strong> in alto a destra. Il file <code>services.json</code> resta comunque modificabile a mano.</p>
 
