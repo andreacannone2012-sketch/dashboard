@@ -1218,4 +1218,1033 @@ button { font: inherit; }
     const q = query.trim().toLowerCase();
     let visible = 0;
     for (const item of items) {
-      const show = (activeCat === ALL || item.svc.category === activeCat) && (!q || i
+      const show = (activeCat === ALL || item.svc.category === activeCat) && (!q || item.haystack.includes(q));
+      item.node.hidden = !show;
+      if (show) visible++;
+    }
+
+    const empty = $("#empty");
+    if (configError) {
+      empty.hidden = false;
+      $("#emptyTitle").textContent = "Impossibile leggere services.json";
+      $("#emptyText").textContent = "Controlla che il file sia nella cartella html e che il JSON sia valido (" + configError + ").";
+    } else if (!items.length) {
+      empty.hidden = false;
+      $("#emptyTitle").textContent = "Nessun servizio configurato";
+      $("#emptyText").textContent = "Aggiungi i tuoi servizi nel file services.json.";
+    } else if (!visible) {
+      empty.hidden = false;
+      $("#emptyTitle").textContent = "Nessun servizio trovato";
+      $("#emptyText").textContent = q
+        ? `Nessun risultato per “${query.trim()}”. Cancella la ricerca o scegli un'altra categoria.`
+        : "Scegli un'altra categoria.";
+    } else {
+      empty.hidden = true;
+    }
+  }
+
+  /* ---------- stato online/offline ---------- */
+  async function probe(url, timeout = 4000) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeout);
+    const start = performance.now();
+    try {
+      // no-cors: non leggiamo la risposta, ci basta sapere che il servizio risponde.
+      await fetch(url, { mode: "no-cors", cache: "no-store", credentials: "omit", signal: ctrl.signal });
+      return { up: true, ms: Math.round(performance.now() - start) };
+    } catch (e) {
+      return { up: false };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function setStatus(item, result) {
+    item.statusEl.classList.remove("checking", "up", "down");
+    item.statusEl.classList.add(result.up ? "up" : "down");
+    item.statusText.textContent = result.up ? `Online, ${result.ms} ms` : "Offline";
+  }
+
+  function updateOnlineChip() {
+    const chip = $("#chipOnline");
+    const known = items.filter((i) => i.up !== null);
+    if (!items.length) { chip.hidden = true; return; }
+    chip.hidden = false;
+    if (!known.length) { chip.textContent = "Verifica dei servizi in corso"; return; }
+    const up = known.filter((i) => i.up).length;
+    chip.textContent = `${up} di ${items.length} ${items.length === 1 ? "servizio online" : "servizi online"}`;
+    chip.classList.toggle("warn", up < items.length);
+  }
+
+  async function checkAll() {
+    if (checking || !items.length) return;
+    checking = true;
+    try {
+      await Promise.all(items.map(async (item) => {
+        const result = await probe(item.checkUrl);
+        item.up = result.up;
+        setStatus(item, result);
+      }));
+      updateOnlineChip();
+      updateServiceSummaryTile();
+    } finally {
+      checking = false;
+    }
+  }
+
+  /* ---------- risorse di sistema ---------- */
+  const tiles = new Map();
+
+  function fmtBytes(value) {
+    const units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
+    let n = value;
+    let i = 0;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+    return n.toLocaleString("it-IT", { maximumFractionDigits: n < 10 ? 1 : 0 }) + " " + units[i];
+  }
+
+  function fmtUptime(seconds) {
+    const d = Math.floor(seconds / 86400);
+    const hrs = Math.floor((seconds % 86400) / 3600);
+    const min = Math.floor((seconds % 3600) / 60);
+    if (d > 0) return `${d} g ${hrs} h`;
+    if (hrs > 0) return `${hrs} h ${min} min`;
+    return `${min} min`;
+  }
+
+  /* ---------- widget: registro dei tipi disponibili ---------- */
+  const WIDGET_TYPES = {
+    cpu:        { label: "Processore",        tone: "primary",   icon: "🖥️" },
+    mem:        { label: "Memoria",           tone: "tertiary",  icon: "🧩" },
+    swap:       { label: "Memoria swap",      tone: "tertiary",  icon: "🔁" },
+    net:        { label: "Rete",              tone: "secondary", icon: "🌐" },
+    load:       { label: "Carico di sistema", tone: "primary",   icon: "📈" },
+    uptime:     { label: "Accensione",        tone: "secondary", icon: "⏱️" },
+    svcsummary: { label: "Servizi online",    tone: "primary",   icon: "✅" },
+    weather:    { label: "Meteo",             tone: "tertiary",  icon: "⛅" },
+    note:       { label: "Nota rapida",       tone: "secondary", icon: "📝" },
+    link:       { label: "Collegamento",      tone: "tertiary",  icon: "🔗" }
+  };
+  const CORE_WIDGET_TYPES = ["cpu", "mem", "swap", "net", "load", "uptime", "svcsummary", "weather"];
+  const DEFAULT_HIDDEN = ["swap", "net", "load", "uptime", "svcsummary", "weather"];
+
+  function widgetInfo(id) {
+    const w = cfg.layout.widgets[id];
+    if (!w) return null;
+    if (w.type === "disk") return { label: "Disco " + w.name, tone: "secondary", icon: "💽" };
+    const t = WIDGET_TYPES[w.type] || { label: id, tone: "primary", icon: "❔" };
+    if (w.type === "link") return { label: w.label || "Collegamento", tone: t.tone, icon: w.icon || t.icon };
+    return t;
+  }
+
+  function ensureLayout() {
+    if (!cfg.layout || typeof cfg.layout !== "object") {
+      cfg.layout = { left: ["cpu", "mem"], right: [], hidden: DEFAULT_HIDDEN.slice(), widgets: {} };
+    }
+    const L = cfg.layout;
+    if (!Array.isArray(L.left)) L.left = [];
+    if (!Array.isArray(L.right)) L.right = [];
+    if (!Array.isArray(L.hidden)) L.hidden = [];
+    if (!L.widgets || typeof L.widgets !== "object") L.widgets = {};
+    for (const type of CORE_WIDGET_TYPES) {
+      if (!L.widgets[type]) {
+        L.widgets[type] = type === "weather" ? { type, lat: null, lon: null, place: "" } : { type };
+        const placed = L.left.includes(type) || L.right.includes(type) || L.hidden.includes(type);
+        if (!placed) L.hidden.push(type);
+      }
+    }
+  }
+
+  function registerDiskWidgets(disks) {
+    const L = cfg.layout;
+    let changed = false;
+    for (const disk of disks || []) {
+      const id = "disk:" + disk.name;
+      if (!L.widgets[id]) {
+        L.widgets[id] = { type: "disk", name: disk.name };
+        L.left.push(id);
+        changed = true;
+      }
+    }
+    if (changed) renderTilesLayout();
+  }
+
+  function removeFromAllLists(id) {
+    const L = cfg.layout;
+    L.left = L.left.filter((x) => x !== id);
+    L.right = L.right.filter((x) => x !== id);
+    L.hidden = L.hidden.filter((x) => x !== id);
+  }
+
+  /* ---------- costruttori dei widget mostrati nella dashboard ---------- */
+  function makeMetricTile(label, tone) {
+    const value = h("div", { class: "tile-value" }, "–");
+    const fill = h("div", { class: "wavy-fill" });
+    const wavy = h("div", { class: "wavy", "aria-hidden": "true" }, h("div", { class: "wavy-track" }), fill);
+    const sub = h("div", { class: "tile-sub" });
+    const root = h("article", { class: "tile tone-" + tone }, h("div", { class: "tile-label" }, label), value, wavy, sub);
+    return {
+      root,
+      set(pct, lines) {
+        const clamped = Math.max(0, Math.min(100, pct));
+        root.classList.remove("stale");
+        root.classList.toggle("hot", clamped >= 90);
+        root.setAttribute("aria-label", `${label} ${Math.round(clamped)}%`);
+        value.replaceChildren(String(Math.round(clamped)), h("span", { class: "unit" }, "%"));
+        fill.style.width = Math.max(clamped, 2) + "%";
+        sub.replaceChildren(...lines.map((line) => h("div", {}, line)));
+      },
+      fail(text) { root.classList.add("stale"); sub.replaceChildren(h("div", {}, text)); }
+    };
+  }
+
+  function makeInfoTile(label, tone) {
+    const text = h("div", { class: "tile-text" }, "–");
+    const sub = h("div", { class: "tile-sub" });
+    const root = h("article", { class: "tile tile-info tone-" + tone }, h("div", { class: "tile-label" }, label), text, sub);
+    return {
+      root,
+      set(main, lines) {
+        root.classList.remove("stale");
+        text.textContent = main;
+        sub.replaceChildren(...(lines || []).map((line) => h("div", {}, line)));
+      },
+      fail(msg) { root.classList.add("stale"); text.textContent = "–"; sub.replaceChildren(h("div", {}, msg)); }
+    };
+  }
+
+  function makeNoteTile(id, tone) {
+    const w = cfg.layout.widgets[id];
+    const ta = h("textarea", { placeholder: "Scrivi qui una nota…" });
+    ta.value = w.text || "";
+    ta.addEventListener("change", () => { w.text = ta.value; saveConfig(); });
+    const root = h("article", { class: "tile tile-info tile-note tone-" + tone }, h("div", { class: "tile-label" }, "Nota"), ta);
+    return { root, set() {}, fail() {} };
+  }
+
+  function makeLinkTile(id, tone) {
+    const w = cfg.layout.widgets[id];
+    const icon = h("span", { class: "icon-sm", "aria-hidden": "true" }, buildIcon({ icon: w.icon, name: w.label }));
+    const meta = h("div", { class: "tl-meta" }, h("b", {}, w.label || "Collegamento"), h("small", {}, w.url ? displayAddress(w.url) : "nessun indirizzo"));
+    const root = h("a", { class: "tile tile-link tone-" + tone, href: w.url || "#", target: w.url ? "_blank" : null, rel: "noopener" }, icon, meta);
+    if (!w.url) root.addEventListener("click", (e) => e.preventDefault());
+    return { root, set() {}, fail() {} };
+  }
+
+  const WEATHER_CODES = {
+    0: "Sereno", 1: "Poco nuvoloso", 2: "Parzialmente nuvoloso", 3: "Nuvoloso",
+    45: "Nebbia", 48: "Nebbia con brina",
+    51: "Pioviggine debole", 53: "Pioviggine", 55: "Pioviggine intensa",
+    61: "Pioggia debole", 63: "Pioggia", 65: "Pioggia intensa",
+    71: "Neve debole", 73: "Neve", 75: "Neve intensa",
+    80: "Rovesci deboli", 81: "Rovesci", 82: "Rovesci intensi",
+    95: "Temporale", 96: "Temporale con grandine", 99: "Temporale con grandine forte"
+  };
+  function weatherEmoji(code) {
+    if (code === 0) return "☀️";
+    if (code <= 2) return "🌤️";
+    if (code === 3) return "☁️";
+    if (code === 45 || code === 48) return "🌫️";
+    if (code >= 51 && code <= 65) return "🌧️";
+    if (code >= 71 && code <= 75) return "❄️";
+    if (code >= 80 && code <= 82) return "🌦️";
+    if (code >= 95) return "⛈️";
+    return "⛅";
+  }
+
+  function makeWeatherTile(id, tone) {
+    const iconEl = h("span", { class: "tw-icon" }, "⛅");
+    const tempEl = h("span", { class: "tw-temp" }, "–");
+    const descEl = h("div", { class: "tw-desc" }, "Imposta una posizione dalle impostazioni");
+    const root = h("article", { class: "tile tone-" + tone },
+      h("div", { class: "tile-label" }, "Meteo"),
+      h("div", { class: "tile-weather" }, iconEl, tempEl),
+      descEl);
+    return {
+      root,
+      set(temp, desc, place) {
+        root.classList.remove("stale");
+        tempEl.textContent = Math.round(temp) + "°";
+        iconEl.textContent = weatherEmoji(desc.code);
+        descEl.textContent = desc.text + (place ? " · " + place : "");
+      },
+      fail(msg) { root.classList.add("stale"); descEl.textContent = msg; }
+    };
+  }
+
+  async function refreshWeather(id, tile) {
+    const w = cfg.layout.widgets[id];
+    if (!w || w.lat == null || w.lon == null) { tile.fail("Imposta una posizione dalle impostazioni"); return; }
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${w.lat}&longitude=${w.lon}&current=temperature_2m,weather_code&timezone=auto`;
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      const code = data.current.weather_code;
+      tile.set(data.current.temperature_2m, { code, text: WEATHER_CODES[code] || "—" }, w.place);
+    } catch (e) { tile.fail("Meteo non disponibile"); }
+  }
+
+  /* ---------- costruzione della griglia dal layout salvato ---------- */
+  function buildWidgetTile(id) {
+    const w = cfg.layout.widgets[id];
+    const info = widgetInfo(id);
+    if (!w || !info) return null;
+    switch (w.type) {
+      case "cpu": case "mem": case "disk": case "swap": case "load": return makeMetricTile(info.label, info.tone);
+      case "net": case "uptime": case "svcsummary": return makeInfoTile(info.label, info.tone);
+      case "weather": return makeWeatherTile(id, info.tone);
+      case "note": return makeNoteTile(id, info.tone);
+      case "link": return makeLinkTile(id, info.tone);
+      default: return null;
+    }
+  }
+
+  function renderTilesLayout() {
+    tiles.clear();
+    const left = $("#tilesLeft"); const right = $("#tilesRight");
+    left.replaceChildren(); right.replaceChildren();
+    for (const [col, ids] of [[left, cfg.layout.left], [right, cfg.layout.right]]) {
+      for (const id of ids) {
+        const tile = buildWidgetTile(id);
+        if (!tile) continue;
+        tiles.set(id, tile);
+        col.append(tile.root);
+        if (cfg.layout.widgets[id].type === "weather") refreshWeather(id, tile);
+      }
+    }
+    updateServiceSummaryTile();
+  }
+
+  function fmtRate(bps) { return fmtBytes(bps) + "/s"; }
+
+  function renderStats(s) {
+    $("#statsNote").hidden = true;
+    registerDiskWidgets(s.disks);
+
+    const set = (id, ...args) => { const t = tiles.get(id); if (t) t.set(...args); };
+
+    const cpuLines = [];
+    if (s.cpu.temp != null) cpuLines.push("Temperatura " + nf.format(s.cpu.temp) + " °C");
+    set("cpu", s.cpu.percent, cpuLines.length ? cpuLines : ["In uso"]);
+
+    set("mem", s.memory.percent, [`${fmtBytes(s.memory.used)} su ${fmtBytes(s.memory.total)}`]);
+
+    if (s.swap) {
+      const t = tiles.get("swap");
+      if (t) { if (s.swap.total > 0) t.set(s.swap.percent, [`${fmtBytes(s.swap.used)} su ${fmtBytes(s.swap.total)}`]); else t.fail("Swap non configurata"); }
+    }
+
+    if (Array.isArray(s.cpu.load)) {
+      set("load", Math.min(100, s.cpu.load[0] * 25), [`Media ${nf.format(s.cpu.load[0])} · ${nf.format(s.cpu.load[1])} · ${nf.format(s.cpu.load[2])}`]);
+    }
+
+    if (s.net) set("net", fmtRate(s.net.rx_bps) + " ↓", [fmtRate(s.net.tx_bps) + " ↑"]);
+
+    for (const disk of s.disks || []) {
+      const tile = tiles.get("disk:" + disk.name);
+      if (!tile) continue;
+      if (disk.error) tile.fail("Percorso non disponibile");
+      else tile.set(disk.percent, [`${fmtBytes(disk.used)} su ${fmtBytes(disk.total)}`]);
+    }
+
+    if (typeof s.uptime === "number") {
+      set("uptime", fmtUptime(s.uptime), []);
+      const chip = $("#chipUptime");
+      chip.hidden = false;
+      chip.textContent = "Acceso da " + fmtUptime(s.uptime);
+    }
+  }
+
+  function updateServiceSummaryTile() {
+    const tile = tiles.get("svcsummary");
+    if (!tile) return;
+    if (!items.length) { tile.fail("Nessun servizio configurato"); return; }
+    const known = items.filter((i) => i.up !== null);
+    const up = known.filter((i) => i.up).length;
+    tile.set(`${up} / ${items.length}`, ["servizi online"]);
+  }
+
+  async function refreshStats() {
+    try {
+      const res = await fetch(STATS_URL, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      renderStats(await res.json());
+    } catch (e) {
+      $("#statsNote").hidden = false;
+      tiles.forEach((tile) => tile.fail("Dati non aggiornati"));
+    }
+  }
+
+  /* ---------- editor dei widget nel pannello impostazioni ---------- */
+  let openWidgetFormId = null;
+  function toggleWidgetForm(id) { openWidgetFormId = openWidgetFormId === id ? null : id; renderWidgetAdmin(); }
+
+  function widgetFormNode(id) {
+    const w = cfg.layout.widgets[id];
+    if (w.type === "link") {
+      const nameInput = h("input", { type: "text", placeholder: "Nome", value: w.label || "" });
+      const urlInput = h("input", { type: "text", placeholder: "http://192.168.1.10:8080", value: w.url || "" });
+      const iconInput = h("input", { type: "text", placeholder: "Emoji o URL icona", value: w.icon || "" });
+      const commit = () => {
+        w.label = nameInput.value.trim() || "Collegamento";
+        let u = urlInput.value.trim();
+        if (u && !/^[a-z][a-z0-9+.-]*:\/\//i.test(u)) u = "http://" + u;
+        w.url = u;
+        w.icon = iconInput.value.trim();
+        renderWidgetAdmin();
+      };
+      [nameInput, urlInput, iconInput].forEach((inp) => inp.addEventListener("change", commit));
+      return h("div", { class: "wform" },
+        h("div", { class: "field" }, h("label", {}, "Nome"), nameInput),
+        h("div", { class: "field" }, h("label", {}, "Indirizzo"), urlInput),
+        h("div", { class: "field" }, h("label", {}, "Icona (emoji o URL)"), iconInput));
+    }
+    if (w.type === "weather") {
+      const latInput = h("input", { type: "text", inputmode: "decimal", placeholder: "Latitudine", value: w.lat != null ? String(w.lat) : "" });
+      const lonInput = h("input", { type: "text", inputmode: "decimal", placeholder: "Longitudine", value: w.lon != null ? String(w.lon) : "" });
+      const placeInput = h("input", { type: "text", placeholder: "Nome del luogo (facoltativo)", value: w.place || "" });
+      const commit = () => {
+        const lat = parseFloat(latInput.value.replace(",", "."));
+        const lon = parseFloat(lonInput.value.replace(",", "."));
+        w.lat = isNaN(lat) ? null : lat;
+        w.lon = isNaN(lon) ? null : lon;
+        w.place = placeInput.value.trim();
+        const tile = tiles.get(id);
+        if (tile) refreshWeather(id, tile);
+      };
+      [latInput, lonInput, placeInput].forEach((inp) => inp.addEventListener("change", commit));
+      const locate = h("button", {
+        type: "button", class: "btn ghost small",
+        onclick: () => {
+          if (!navigator.geolocation) return;
+          navigator.geolocation.getCurrentPosition((pos) => {
+            latInput.value = pos.coords.latitude.toFixed(4);
+            lonInput.value = pos.coords.longitude.toFixed(4);
+            commit();
+          }, () => { $("#saveHint").textContent = "Posizione non disponibile: inseriscila a mano."; });
+        }
+      }, "Usa la mia posizione");
+      return h("div", { class: "wform" },
+        h("div", { class: "row" },
+          h("div", { class: "field" }, h("label", {}, "Latitudine"), latInput),
+          h("div", { class: "field" }, h("label", {}, "Longitudine"), lonInput)),
+        h("div", { class: "field" }, h("label", {}, "Luogo"), placeInput),
+        locate);
+    }
+    return null;
+  }
+
+  function widgetChip(id, opts) {
+    const info = widgetInfo(id);
+    if (!info) return null;
+    const w = cfg.layout.widgets[id];
+    const removable = w.type === "note" || w.type === "link";
+    const editable = w.type === "note" || w.type === "link" || w.type === "weather";
+    const chip = h("div", { class: "wchip" + (opts.pool ? " wchip-pool" : ""), "data-id": id },
+      h("span", { class: "icon-sm", "aria-hidden": "true" }, buildIcon({ icon: info.icon })),
+      h("span", { class: "wc-label" }, info.label));
+
+    if (opts.pool) {
+      chip.append(h("button", {
+        type: "button", class: "iconbtn", title: "Mostra a sinistra", "aria-label": "Mostra a sinistra",
+        onclick: () => { cfg.layout.hidden = cfg.layout.hidden.filter((x) => x !== id); cfg.layout.left.push(id); renderWidgetAdmin(); }
+      }, "＋"));
+    } else {
+      const list = opts.col === 0 ? cfg.layout.left : cfg.layout.right;
+      const idx = list.indexOf(id);
+      chip.append(
+        h("button", {
+          type: "button", class: "iconbtn", title: "Sposta su", "aria-label": "Sposta su", disabled: idx <= 0,
+          onclick: () => { [list[idx - 1], list[idx]] = [list[idx], list[idx - 1]]; renderWidgetAdmin(); }
+        }, "▲"),
+        h("button", {
+          type: "button", class: "iconbtn", title: "Sposta giù", "aria-label": "Sposta giù", disabled: idx >= list.length - 1,
+          onclick: () => { [list[idx + 1], list[idx]] = [list[idx], list[idx + 1]]; renderWidgetAdmin(); }
+        }, "▼"),
+        h("button", {
+          type: "button", class: "iconbtn", title: "Sposta di colonna", "aria-label": "Sposta di colonna",
+          onclick: () => { list.splice(idx, 1); (opts.col === 0 ? cfg.layout.right : cfg.layout.left).push(id); renderWidgetAdmin(); }
+        }, "⇄")
+      );
+      if (editable) {
+        chip.append(h("button", {
+          type: "button", class: "iconbtn", title: "Modifica", "aria-label": "Modifica",
+          onclick: () => toggleWidgetForm(id)
+        }, "✎"));
+      }
+      chip.append(h("button", {
+        type: "button", class: "iconbtn", title: "Nascondi", "aria-label": "Nascondi",
+        onclick: () => { removeFromAllLists(id); cfg.layout.hidden.push(id); renderWidgetAdmin(); }
+      }, "🙈"));
+    }
+    if (removable) {
+      chip.append(h("button", {
+        type: "button", class: "iconbtn", title: "Elimina", "aria-label": "Elimina",
+        onclick: () => {
+          if (!confirm("Eliminare questo widget?")) return;
+          removeFromAllLists(id);
+          delete cfg.layout.widgets[id];
+          if (openWidgetFormId === id) openWidgetFormId = null;
+          renderWidgetAdmin();
+          $("#saveHint").textContent = "Eliminato: premi Salva per confermare.";
+        }
+      }, "🗑"));
+    }
+    return chip;
+  }
+
+  function renderWidgetAdmin() {
+    const pool = $("#widgetPool");
+    pool.replaceChildren();
+    cfg.layout.hidden.forEach((id) => { const c = widgetChip(id, { pool: true }); if (c) pool.append(c); });
+
+    for (const col of [0, 1]) {
+      const list = $("#wcol" + col);
+      list.replaceChildren();
+      const ids = col === 0 ? cfg.layout.left : cfg.layout.right;
+      ids.forEach((id) => {
+        const chip = widgetChip(id, { col });
+        if (!chip) return;
+        list.append(chip);
+        if (openWidgetFormId === id) {
+          const form = widgetFormNode(id);
+          if (form) list.append(form);
+        }
+      });
+    }
+  }
+
+  function initWidgetAdmin() {
+    $("#widgetAddNote").addEventListener("click", () => {
+      const id = "note-" + Date.now();
+      cfg.layout.widgets[id] = { type: "note", text: "" };
+      cfg.layout.left.push(id);
+      renderWidgetAdmin();
+      $("#saveHint").textContent = "Nota aggiunta: premi Salva per confermare.";
+    });
+    $("#widgetAddLink").addEventListener("click", () => {
+      const id = "link-" + Date.now();
+      cfg.layout.widgets[id] = { type: "link", label: "Nuovo collegamento", url: "", icon: "🔗" };
+      cfg.layout.left.push(id);
+      openWidgetFormId = id;
+      renderWidgetAdmin();
+      $("#saveHint").textContent = "Collegamento aggiunto: premi Salva per confermare.";
+    });
+  }
+
+  /* ---------- servizi: vista compatta (solo icona) ---------- */
+  function applyServiceDisplay() {
+    $("#services").classList.toggle("services-compact", cfg.serviceDisplay === "compact");
+  }
+  function initServiceDisplay() {
+    $("#serviceDisplaySeg").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-display]");
+      if (!btn) return;
+      cfg.serviceDisplay = btn.dataset.display;
+      $$("#serviceDisplaySeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.display === cfg.serviceDisplay)));
+      applyServiceDisplay();
+    });
+  }
+
+  /* ---------- ricerca (pannello compattabile) ---------- */
+  function initSearch() {
+    const input = $("#search");
+    const wrap = $("#heroSearch");
+    const toggle = $("#searchToggle");
+    const closeBtn = $("#searchClose");
+    const pill = wrap.querySelector(".search-pill");
+
+    const open = () => {
+      wrap.hidden = false;
+      toggle.setAttribute("aria-expanded", "true");
+      requestAnimationFrame(() => input.focus());
+    };
+    const hide = () => {
+      wrap.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+      if (input.value || query) {
+        input.value = "";
+        query = "";
+        applyFilter();
+      }
+    };
+
+    toggle.addEventListener("click", () => { wrap.hidden ? open() : hide(); });
+    closeBtn.addEventListener("click", hide);
+
+    pill.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      input.focus();
+    });
+
+    input.addEventListener("input", () => { query = input.value; applyFilter(); });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const first = items.find((i) => !i.node.hidden);
+        if (first) window.open(first.url, "_blank", "noopener");
+      } else if (e.key === "Escape") {
+        hide();
+        input.blur();
+      }
+    });
+    document.addEventListener("keydown", (e) => {
+      const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+      if (e.key === "/" && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        open();
+      }
+    });
+  }
+
+  /* ---------- profilo, impostazioni e gestione dei servizi ---------- */
+  const SAVE_URL = "/api/services";
+  const LS_KEYS = { hue: "nas-hue", theme: "nas-theme", cfg: "nas-config", localOnly: "nas-config-local" };
+  let localOnly = false;          // true quando il server non può salvare (file://, /config in sola lettura)
+  let editingIndex = null;
+
+  function lsGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+  function lsSet(key, value) { try { localStorage.setItem(key, value); } catch (e) { /* storage non disponibile */ } }
+
+  /* --- tema chiaro/scuro/automatico --- */
+  function applyThemeMode(mode) {
+    if (mode === "light" || mode === "dark") document.documentElement.setAttribute("data-theme", mode);
+    else document.documentElement.removeAttribute("data-theme");
+    lsSet(LS_KEYS.theme, mode);
+    $$("#themeSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeMode === mode)));
+  }
+
+  function initThemeMode() {
+    const saved = lsGet(LS_KEYS.theme) || "auto";
+    applyThemeMode(saved);
+    $("#themeSeg").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-theme-mode]");
+      if (btn) applyThemeMode(btn.dataset.themeMode);
+    });
+  }
+
+  /* --- immagini ridimensionate, per non appesantire la configurazione --- */
+  function readImage(file, max) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = reject;
+        img.onload = () => {
+          const scale = Math.min(1, max / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(img.width * scale));
+          canvas.height = Math.max(1, Math.round(img.height * scale));
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/png"));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /* --- mini account --- */
+  function iconNodeFor(value, fallback) {
+    return buildIcon({ icon: value, name: fallback });
+  }
+
+  function renderAccount() {
+    const name = (cfg.name || "").trim();
+    $("#accountName").textContent = name;
+    const btn = $("#avatarBtn");
+    btn.replaceChildren(iconNodeFor(cfg.avatar || cfg.avatarEmoji || "", name || "🙂"));
+    const preview = $("#avatarPreview");
+    if (preview) preview.replaceChildren(iconNodeFor(cfg.avatar || cfg.avatarEmoji || "", name || "🙂"));
+  }
+
+  /* --- salvataggio della configurazione --- */
+  function configPayload() {
+    return {
+      title: cfg.title || "Il mio NAS",
+      name: cfg.name || "",
+      avatar: cfg.avatar || "",
+      avatarEmoji: cfg.avatarEmoji || "",
+      sshUrl: cfg.sshUrl || "",
+      statusIntervalSeconds: Number(cfg.statusIntervalSeconds) || 15,
+      serviceDisplay: cfg.serviceDisplay === "compact" ? "compact" : "full",
+      services: cfg.services || [],
+      layout: cfg.layout || null
+    };
+  }
+
+  async function saveConfig() {
+    const payload = configPayload();
+    lsSet(LS_KEYS.cfg, JSON.stringify(payload));
+    if (location.protocol === "file:") {
+      localOnly = true;
+      lsSet(LS_KEYS.localOnly, "1");
+      return { ok: false, reason: "pagina aperta senza server: salvato solo in questo browser" };
+    }
+    try {
+      const res = await fetch(SAVE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      localOnly = false;
+      lsSet(LS_KEYS.localOnly, "0");
+      return { ok: true };
+    } catch (e) {
+      localOnly = true;
+      lsSet(LS_KEYS.localOnly, "1");
+      return { ok: false, reason: "il server non ha potuto scrivere services.json: salvato solo in questo browser" };
+    }
+  }
+
+  let statusTimer = null;
+  function restartStatusTimer() {
+    if (statusTimer) clearInterval(statusTimer);
+    const every = Math.max(5, Number(cfg.statusIntervalSeconds) || 15) * 1000;
+    statusTimer = setInterval(() => { if (!document.hidden) checkAll(); }, every);
+  }
+
+  function refreshEverything() {
+    document.title = cfg.title || "NAS";
+    $("#brand").textContent = cfg.title || "NAS";
+    renderAccount();
+    tick();
+    ensureLayout();
+    applyServiceDisplay();
+    renderServices();
+    renderFilters();
+    applyFilter();
+    updateOnlineChip();
+    renderTilesLayout();
+    checkAll();
+    refreshStats();
+    restartStatusTimer();
+  }
+
+  /* --- pannello impostazioni --- */
+  function fillSettings() {
+    $("#fName").value = cfg.name || "";
+    $("#fTitle").value = cfg.title || "";
+    $("#fAvatarEmoji").value = cfg.avatarEmoji || "";
+    $("#fSsh").value = cfg.sshUrl || "http://192.168.1.207:7681/";
+    $("#fInterval").value = Number(cfg.statusIntervalSeconds) || 15;
+    $("#storageHint").textContent = localOnly
+      ? "Le modifiche sono salvate solo in questo browser: il server non può scrivere services.json."
+      : "Le modifiche vengono scritte in services.json sul NAS, quindi valgono per tutti i dispositivi.";
+    $$("#serviceDisplaySeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.display === (cfg.serviceDisplay || "full"))));
+    renderAccount();
+    renderServicesAdmin();
+    renderWidgetAdmin();
+  }
+
+  function showTab(name) {
+    $$("#settingsTabs .tab").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+    $$(".sheet .pane[data-pane]").forEach((p) => { p.hidden = p.dataset.pane !== name; });
+  }
+
+  function openSettings(tab) {
+    fillSettings();
+    showTab(tab || "profilo");
+    $("#saveHint").textContent = "";
+    $("#settingsBackdrop").hidden = false;
+  }
+  function closeSettings() { $("#settingsBackdrop").hidden = true; }
+
+  function initSettings() {
+    $("#settingsBtn").addEventListener("click", () => openSettings("profilo"));
+    $("#avatarBtn").addEventListener("click", () => openSettings("profilo"));
+    $("#settingsClose").addEventListener("click", closeSettings);
+    $("#settingsBackdrop").addEventListener("click", (e) => { if (e.target.id === "settingsBackdrop") closeSettings(); });
+    $("#settingsTabs").addEventListener("click", (e) => {
+      const btn = e.target.closest(".tab");
+      if (btn) showTab(btn.dataset.tab);
+    });
+
+    $("#fAvatarEmoji").addEventListener("input", (e) => {
+      cfg.avatarEmoji = e.target.value.trim();
+      renderAccount();
+    });
+    $("#avatarUpload").addEventListener("click", () => $("#avatarFile").click());
+    $("#avatarFile").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      try { cfg.avatar = await readImage(file, 256); renderAccount(); }
+      catch (err) { $("#saveHint").textContent = "Immagine non leggibile."; }
+    });
+    $("#avatarClear").addEventListener("click", () => { cfg.avatar = ""; renderAccount(); });
+
+    $("#sshOpen").addEventListener("click", () => {
+      const url = ($("#fSsh").value || "").trim() || "http://192.168.1.207:7681/";
+      window.open(url, "_blank", "noopener");
+    });
+    $("#sshAsService").addEventListener("click", () => {
+      const url = ($("#fSsh").value || "").trim() || "http://192.168.1.207:7681/";
+      cfg.services = cfg.services || [];
+      cfg.services.push({ name: "Terminale ZimaOS", desc: "Riga di comando del server", icon: "🖥️", url, category: "Sistema" });
+      renderServicesAdmin();
+      showTab("servizi");
+      $("#saveHint").textContent = "Aggiunto: premi Salva per confermare.";
+    });
+
+    $("#settingsSave").addEventListener("click", async () => {
+      cfg.name = $("#fName").value.trim();
+      cfg.title = $("#fTitle").value.trim() || "Il mio NAS";
+      cfg.avatarEmoji = $("#fAvatarEmoji").value.trim();
+      cfg.sshUrl = $("#fSsh").value.trim();
+      cfg.statusIntervalSeconds = Math.max(5, Number($("#fInterval").value) || 15);
+      const result = await saveConfig();
+      refreshEverything();
+      if (result.ok) closeSettings();
+      else { $("#saveHint").textContent = result.reason; $("#storageHint").textContent = result.reason; }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      if (!$("#svcBackdrop").hidden) closeServiceEditor();
+      else if (!$("#settingsBackdrop").hidden) closeSettings();
+    });
+
+    initServiceEditor();
+    initWidgetAdmin();
+    initServiceDisplay();
+  }
+
+  /* --- elenco servizi dentro le impostazioni --- */
+  function renderServicesAdmin() {
+    const box = $("#svcAdmin");
+    box.replaceChildren();
+    const list = cfg.services || [];
+    if (!list.length) {
+      box.append(h("p", { class: "hint" }, "Nessun servizio: aggiungine uno con il pulsante qui sotto."));
+      return;
+    }
+    list.forEach((svc, index) => {
+      const move = (delta) => {
+        const target = index + delta;
+        if (target < 0 || target >= list.length) return;
+        [list[index], list[target]] = [list[target], list[index]];
+        renderServicesAdmin();
+      };
+      box.append(h("div", { class: "srow" },
+        h("div", { class: "icon-sm", "aria-hidden": "true" }, buildIcon(svc)),
+        h("div", { class: "meta" },
+          h("b", {}, svc.name || "Servizio"),
+          h("small", {}, displayAddress(resolveUrl(svc)))),
+        h("button", { type: "button", class: "iconbtn", title: "Sposta su", "aria-label": "Sposta su", disabled: index === 0, onclick: () => move(-1) }, "▲"),
+        h("button", { type: "button", class: "iconbtn", title: "Sposta giù", "aria-label": "Sposta giù", disabled: index === list.length - 1, onclick: () => move(1) }, "▼"),
+        h("button", { type: "button", class: "iconbtn", title: "Modifica", "aria-label": "Modifica", onclick: () => openServiceEditor(index) }, "✎"),
+        h("button", {
+          type: "button", class: "iconbtn", title: "Elimina", "aria-label": "Elimina",
+          onclick: () => {
+            if (!confirm(`Eliminare "${svc.name || "questo servizio"}"?`)) return;
+            list.splice(index, 1);
+            renderServicesAdmin();
+            $("#saveHint").textContent = "Eliminato: premi Salva per confermare.";
+          }
+        }, "🗑")));
+    });
+  }
+
+  /* --- editor di un singolo servizio --- */
+  function svcIconPreview() {
+    $("#svcIconPreview").replaceChildren(iconNodeFor($("#sIcon").value.trim(), $("#sName").value.trim() || "🔗"));
+  }
+
+  function openServiceEditor(index) {
+    editingIndex = index;
+    const svc = (index == null ? {} : cfg.services[index]) || {};
+    $("#svcTitle").textContent = index == null ? "Nuovo servizio" : "Modifica servizio";
+    $("#sName").value = svc.name || "";
+    $("#sDesc").value = svc.desc || "";
+    $("#sIcon").value = svc.icon || "";
+    $("#sPort").value = svc.port || "";
+    $("#sCategory").value = svc.category || "";
+    $("#sUrl").value = svc.url || "";
+    $("#svcDelete").hidden = index == null;
+    svcIconPreview();
+    $("#svcBackdrop").hidden = false;
+  }
+  function closeServiceEditor() { $("#svcBackdrop").hidden = true; editingIndex = null; }
+
+  function initServiceEditor() {
+    $("#svcAdd").addEventListener("click", () => openServiceEditor(null));
+    $("#svcClose").addEventListener("click", closeServiceEditor);
+    $("#svcBackdrop").addEventListener("click", (e) => { if (e.target.id === "svcBackdrop") closeServiceEditor(); });
+    $("#sIcon").addEventListener("input", svcIconPreview);
+    $("#sName").addEventListener("input", svcIconPreview);
+    $("#sIconUpload").addEventListener("click", () => $("#sIconFile").click());
+    $("#sIconFile").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      try { $("#sIcon").value = await readImage(file, 192); svcIconPreview(); }
+      catch (err) { /* immagine non leggibile */ }
+    });
+    $("#sIconClear").addEventListener("click", () => { $("#sIcon").value = ""; svcIconPreview(); });
+
+    $("#svcDelete").addEventListener("click", () => {
+      if (editingIndex == null) return;
+      cfg.services.splice(editingIndex, 1);
+      closeServiceEditor();
+      renderServicesAdmin();
+      $("#saveHint").textContent = "Eliminato: premi Salva per confermare.";
+    });
+
+    $("#svcSave").addEventListener("click", () => {
+      let url = $("#sUrl").value.trim();
+      if (url && !/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) url = "http://" + url;
+      const svc = {
+        name: $("#sName").value.trim() || "Servizio",
+        desc: $("#sDesc").value.trim(),
+        icon: $("#sIcon").value.trim(),
+        category: $("#sCategory").value.trim(),
+      };
+      const port = Number($("#sPort").value);
+      if (url) svc.url = url;
+      else if (port) svc.port = port;
+      cfg.services = cfg.services || [];
+      if (editingIndex == null) cfg.services.push(svc);
+      else cfg.services[editingIndex] = Object.assign({}, cfg.services[editingIndex], svc, url ? { port: undefined } : { url: undefined });
+      closeServiceEditor();
+      renderServicesAdmin();
+      $("#saveHint").textContent = "Modifiche pronte: premi Salva per confermare.";
+    });
+  }
+
+  /* ---------- avvio ---------- */
+  async function loadConfig() {
+    // 1) Se la pagina è servita da un server (Docker, "python -m http.server", ecc.)
+    //    proviamo a leggere services.json, che è la fonte "vera" e modificabile
+    //    dal NAS senza toccare il codice.
+    localOnly = lsGet(LS_KEYS.localOnly) === "1";
+    const stored = lsGet(LS_KEYS.cfg);
+
+    // 0) Se un salvataggio precedente non è potuto arrivare al server, la copia
+    //    di questo browser è la più aggiornata e ha la precedenza.
+    if (localOnly && stored) {
+      try {
+        cfg = Object.assign(cfg, JSON.parse(stored));
+        if (!Array.isArray(cfg.services)) cfg.services = [];
+        return;
+      } catch (e) { /* copia locale illeggibile: si prosegue */ }
+    }
+
+    if (location.protocol !== "file:") {
+      try {
+        const res = await fetch("services.json", { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        cfg = Object.assign(cfg, data);
+        if (!Array.isArray(cfg.services)) cfg.services = [];
+        return;
+      } catch (e) {
+        configError = e.message || "errore sconosciuto";
+      }
+    }
+
+    // 2) Pagina aperta a doppio clic (file://) oppure services.json non raggiungibile:
+    //    fetch() su file locali è bloccato dal browser, quindi non funzionerà mai in
+    //    questo caso. Usiamo invece window.NAS_CONFIG, se presente: viene definito da
+    //    un eventuale "config.js" caricato con <script>, che funziona anche da file://.
+    if (stored) {
+      try {
+        cfg = Object.assign(cfg, JSON.parse(stored));
+        if (!Array.isArray(cfg.services)) cfg.services = [];
+        configError = null;
+        usingFallbackConfig = true;
+        localOnly = true;
+        return;
+      } catch (e) { /* copia locale illeggibile: si prosegue */ }
+    }
+
+    if (window.NAS_CONFIG && typeof window.NAS_CONFIG === "object") {
+      cfg = Object.assign(cfg, window.NAS_CONFIG);
+      if (!Array.isArray(cfg.services)) cfg.services = [];
+      configError = null;
+      usingFallbackConfig = true;
+      return;
+    }
+
+    // 3) Nessuna config esterna disponibile: usiamo quella di riserva incorporata
+    //    nella pagina, così la dashboard mostra comunque qualcosa.
+    cfg = Object.assign({}, DEFAULT_CONFIG);
+    usingFallbackConfig = true;
+  }
+
+  function renderModeNotice() {
+    const notice = $("#modeNotice");
+    if (!notice) return;
+    if (location.protocol === "file:") {
+      notice.hidden = false;
+      notice.textContent = usingFallbackConfig
+        ? "Pagina aperta come file, senza server: mostro una configurazione di esempio. Le statistiche del NAS non sono disponibili in questa modalità (richiedono il container in esecuzione). Puoi comunque modificare servizi e profilo dalle impostazioni: le modifiche restano salvate in questo browser."
+        : "Pagina aperta come file, senza server: le statistiche del NAS non sono disponibili in questa modalità (richiedono il container in esecuzione).";
+    } else {
+      notice.hidden = true;
+    }
+  }
+
+  function reportFatal(step, err) {
+    console.error("[" + step + "]", err);
+    const box = $("#fatalError");
+    if (!box) return;
+    box.hidden = false;
+    box.append(h("div", {}, `${step}: ${err && err.message ? err.message : err}`));
+  }
+
+  async function init() {
+    const steps = [
+      ["tema", () => { initTheme(); initThemeMode(); }],
+      ["impostazioni", () => initSettings()],
+      ["ricerca", () => initSearch()],
+      ["orologio", () => { tick(); setInterval(tick, 1000); }]
+    ];
+    for (const [name, fn] of steps) {
+      try { fn(); } catch (e) { reportFatal(name, e); }
+    }
+
+    try {
+      await loadConfig();
+    } catch (e) { reportFatal("caricamento configurazione", e); }
+
+    try {
+      renderModeNotice();
+      $("#brand").textContent = cfg.title || "NAS";
+      document.title = cfg.title || "NAS";
+      renderAccount();
+      tick();
+    } catch (e) { reportFatal("profilo", e); }
+
+    try {
+      ensureLayout();
+      renderTilesLayout();
+    } catch (e) { reportFatal("widget", e); }
+
+    try {
+      applyServiceDisplay();
+      renderServices();
+      renderFilters();
+      applyFilter();
+      updateOnlineChip();
+    } catch (e) { reportFatal("servizi", e); }
+
+    try { checkAll(); } catch (e) { reportFatal("verifica servizi", e); }
+    try { refreshStats(); } catch (e) { reportFatal("statistiche", e); }
+
+    try {
+      restartStatusTimer();
+      setInterval(() => { if (!document.hidden) refreshStats(); }, 3000);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) { checkAll(); refreshStats(); }
+      });
+    } catch (e) { reportFatal("timer", e); }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
